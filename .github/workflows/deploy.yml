@@ -1,0 +1,41 @@
+name: Deploy VM Medical Center
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      deployments: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Build
+        run: npm run build
+        env:
+          VITE_SUPABASE_URL: https://pjwefetpngpmeaymzdew.supabase.co
+          VITE_SUPABASE_ANON_KEY: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBqd2VmZXRwbmdwbWVheW16ZGV3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk3MTU0ODYsImV4cCI6MjA5NTI5MTQ4Nn0.3y_E7nGbvSrFkVZhh1FE2aBpb4kgNNWW6E3gfQZo1zQ
+
+      - name: Deploy to Cloudflare Pages
+        uses: cloudflare/pages-action@v1
+        with:
+          apiToken: cfut_FKhFFLrMCUGfSCPoGFmzIMBbEv4Dlcs4MYWDqZiv16d8c0d7
+          accountId: e6f7753428f7dfcd23ba42df27ff3429
+          projectName: vmmedical-center
+          directory: dist
+          gitHubToken: ${{ secrets.GITHUB_TOKEN }}
