@@ -1,0 +1,17 @@
+# ============================================
+# VM Medical Center — Variables de entorno
+# ============================================
+# Copia este archivo como .env.local y completa los valores
+# NUNCA subas .env.local a Git
+
+# Supabase — obtén estos valores en https://supabase.com/dashboard
+VITE_SUPABASE_URL=https://TU_PROYECTO.supabase.co
+VITE_SUPABASE_ANON_KEY=eyJ...tu_anon_key_aqui
+
+# Centro médico (opcional — también configurable desde el panel)
+VITE_CLINIC_NAME=VM Medical Center
+VITE_CLINIC_ADDRESS=Av. Principal 123, Quito, Ecuador
+VITE_CLINIC_PHONE=02-234-5678
+VITE_CLINIC_WHATSAPP=593987654321
+VITE_CLINIC_EMAIL=info@vmmedical.ec
+VITE_CLINIC_RUC=1790000000001
