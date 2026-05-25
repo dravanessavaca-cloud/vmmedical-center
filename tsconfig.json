@@ -1,179 +1,25 @@
-// ============================================================
-// VM Medical Center — Crear usuarios en Supabase
-// Ejecutar desde la carpeta del proyecto:
-//   node setup-usuarios.mjs
-// ============================================================
-const SUPABASE_URL     = 'https://pjwefetpngpmeaymzdew.supabase.co'
-const SUPABASE_SERVICE = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBqd2VmZXRwbmdwbWVheW16ZGV3Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3OTcxNTQ4NiwiZXhwIjoyMDk1MjkxNDg2fQ.ElDJL8ZdAjhlyGej9KQmDaK5IezmFQSX4ZkbuqX1_jk'
-
-const ok  = (m) => console.log(`\x1b[32m✓\x1b[0m ${m}`)
-const err = (m) => console.log(`\x1b[31m✗\x1b[0m ${m}`)
-const log = (m) => console.log(`\x1b[36m→\x1b[0m ${m}`)
-const sep = ()  => console.log('\x1b[90m' + '─'.repeat(55) + '\x1b[0m')
-
-async function adminFetch(path, body) {
-  const r = await fetch(`${SUPABASE_URL}${path}`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'apikey': SUPABASE_SERVICE,
-      'Authorization': `Bearer ${SUPABASE_SERVICE}`,
-    },
-    body: JSON.stringify(body),
-  })
-  return r.json()
-}
-
-async function restFetch(table, body, method = 'POST') {
-  const r = await fetch(`${SUPABASE_URL}/rest/v1/${table}`, {
-    method,
-    headers: {
-      'Content-Type': 'application/json',
-      'Prefer': 'resolution=merge-duplicates,return=minimal',
-      'apikey': SUPABASE_SERVICE,
-      'Authorization': `Bearer ${SUPABASE_SERVICE}`,
-    },
-    body: JSON.stringify(body),
-  })
-  if (r.status >= 400) {
-    const t = await r.text()
-    return { error: t }
-  }
-  return { data: true }
-}
-
-const USERS = [
-  { email: 'admin@vmmedical.ec',     password: 'Admin2024!',  full_name: 'Administrador Sistema', role: 'admin',         specialty: null,               license_number: null        },
-  { email: 'recepcion@vmmedical.ec', password: 'Recep2024!',  full_name: 'Recepcionista',         role: 'recepcionista', specialty: null,               license_number: null        },
-  { email: 'medico@vmmedical.ec',    password: 'Medico2024!', full_name: 'Dr. Carlos Vega',       role: 'medico',        specialty: 'Médico General',   license_number: 'MSP-12345' },
-  { email: 'podologo@vmmedical.ec',  password: 'Podol2024!',  full_name: 'Dra. María Solís',      role: 'podologo',      specialty: 'Podología Clínica',license_number: 'MSP-67890' },
-]
-
-const PACIENTES = [
-  { first_name: 'Laura',   last_name: 'Méndez Flores',   id_number: '1712345678', date_of_birth: '1990-03-15', gender: 'femenino',  blood_type: 'O+', phone: '0987654321', email: 'laura@example.com',  city: 'Quito',     occupation: 'Profesora'  },
-  { first_name: 'Roberto', last_name: 'Silva Moreno',    id_number: '1798765432', date_of_birth: '1972-07-22', gender: 'masculino', blood_type: 'A+', phone: '0912345678', email: null,                 city: 'Quito',     occupation: 'Ingeniero'  },
-  { first_name: 'Camila',  last_name: 'Torres Jiménez',  id_number: '1756789012', date_of_birth: '1997-11-08', gender: 'femenino',  blood_type: 'B+', phone: '0998765432', email: 'camila@example.com', city: 'Quito',     occupation: 'Estudiante' },
-  { first_name: 'Jorge',   last_name: 'Herrera Vásquez', id_number: '1745678901', date_of_birth: '1957-04-12', gender: 'masculino', blood_type: 'O-', phone: '0945678901', email: null,                 city: 'Sangolquí', occupation: 'Agricultor' },
-  { first_name: 'Ana',     last_name: 'Ruiz Castillo',   id_number: '1723456789', date_of_birth: '1983-09-30', gender: 'femenino',  blood_type: 'AB+',phone: '0934567890', email: 'ana@example.com',    city: 'Quito',     occupation: 'Contadora'  },
-]
-
-async function main() {
-  console.log('\n\x1b[1m🏥 VM Medical Center — Setup de usuarios\x1b[0m')
-  sep()
-
-  // ── 1. Verificar que las tablas existen ────────────────────
-  log('Verificando tablas en Supabase...')
-  const check = await fetch(`${SUPABASE_URL}/rest/v1/profiles?limit=1`, {
-    headers: { 'apikey': SUPABASE_SERVICE, 'Authorization': `Bearer ${SUPABASE_SERVICE}` }
-  })
-
-  if (check.status === 404 || check.status === 400) {
-    const body = await check.text()
-    if (body.includes('relation') || body.includes('does not exist') || body.includes('42P01')) {
-      err('Las tablas NO existen aún en Supabase.')
-      console.log('\n\x1b[33m⚠️  Primero aplica el schema SQL:\x1b[0m')
-      console.log('   1. Abre: https://supabase.com/dashboard/project/pjwefetpngpmeaymzdew/sql/new')
-      console.log('   2. Pega el contenido de: supabase/migrations/001_initial_schema.sql')
-      console.log('   3. Clic en "Run"')
-      console.log('   4. Vuelve a ejecutar este script\n')
-      process.exit(1)
+{
+  "compilerOptions": {
+    "target": "ES2020",
+    "useDefineForClassFields": true,
+    "lib": ["ES2020", "DOM", "DOM.Iterable"],
+    "module": "ESNext",
+    "skipLibCheck": true,
+    "moduleResolution": "bundler",
+    "allowImportingTsExtensions": true,
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "noEmit": true,
+    "jsx": "react-jsx",
+    "strict": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noFallthroughCasesInSwitch": true,
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["src/*"]
     }
-  }
-  ok('Tablas encontradas')
-  sep()
-
-  // ── 2. Crear usuarios ──────────────────────────────────────
-  log('Creando usuarios...\n')
-  const createdIds = {}
-
-  for (const u of USERS) {
-    process.stdout.write(`   [${u.role.padEnd(13)}] ${u.email.padEnd(28)} → `)
-
-    const res = await adminFetch('/auth/v1/admin/users', {
-      email: u.email,
-      password: u.password,
-      email_confirm: true,
-      user_metadata: { full_name: u.full_name, role: u.role },
-    })
-
-    if (res.id) {
-      console.log(`\x1b[32mcreado ✓\x1b[0m  (${res.id.slice(0,8)}...)`)
-      createdIds[u.role] = res.id
-    } else if (res.msg?.includes('already') || res.error?.includes('already') || res.code === 'email_exists') {
-      console.log('\x1b[33mya existía — buscando ID...\x1b[0m')
-      // Listar usuarios para encontrar el ID
-      const list = await fetch(`${SUPABASE_URL}/auth/v1/admin/users?page=1&per_page=50`, {
-        headers: { 'apikey': SUPABASE_SERVICE, 'Authorization': `Bearer ${SUPABASE_SERVICE}` }
-      }).then(r => r.json())
-      const found = (list.users ?? []).find(x => x.email === u.email)
-      if (found) {
-        createdIds[u.role] = found.id
-        console.log(`\x1b[33m   └─ ID encontrado: ${found.id.slice(0,8)}...\x1b[0m`)
-      }
-    } else {
-      console.log(`\x1b[31mERROR: ${JSON.stringify(res)}\x1b[0m`)
-    }
-  }
-
-  sep()
-
-  // ── 3. Actualizar perfiles ─────────────────────────────────
-  log('Configurando perfiles (rol, especialidad, matrícula)...\n')
-
-  for (const u of USERS) {
-    const id = createdIds[u.role]
-    if (!id) { err(`Sin ID para ${u.role}, saltando`); continue }
-    process.stdout.write(`   [${u.role.padEnd(13)}] ${u.full_name.padEnd(28)} → `)
-
-    const { error } = await restFetch('profiles', {
-      id,
-      email: u.email,
-      full_name: u.full_name,
-      role: u.role,
-      specialty: u.specialty,
-      license_number: u.license_number,
-      is_active: true,
-    })
-
-    if (error) console.log(`\x1b[31mERROR: ${error}\x1b[0m`)
-    else console.log('\x1b[32mok ✓\x1b[0m')
-  }
-
-  sep()
-
-  // ── 4. Insertar pacientes de prueba ────────────────────────
-  const recepId = createdIds['recepcionista'] ?? Object.values(createdIds)[0]
-  if (recepId) {
-    log('Insertando pacientes de prueba...\n')
-    for (const p of PACIENTES) {
-      process.stdout.write(`   ${(p.first_name + ' ' + p.last_name).padEnd(28)} → `)
-      const { error } = await restFetch('patients', { ...p, created_by: recepId, is_active: true })
-      if (error) {
-        if (error.includes('duplicate') || error.includes('23505')) console.log('\x1b[33mya existe\x1b[0m')
-        else console.log(`\x1b[31mERROR: ${error}\x1b[0m`)
-      } else {
-        console.log('\x1b[32mcreado ✓\x1b[0m')
-      }
-    }
-    sep()
-  }
-
-  // ── 5. Resumen ─────────────────────────────────────────────
-  console.log('\n\x1b[1m\x1b[32m🎉 ¡Todo listo!\x1b[0m\n')
-  console.log('\x1b[1mUsuarios del sistema:\x1b[0m')
-  console.log('┌──────────────────┬──────────────────────────┬──────────────┐')
-  console.log('│ Rol              │ Email                    │ Contraseña   │')
-  console.log('├──────────────────┼──────────────────────────┼──────────────┤')
-  for (const u of USERS) {
-    console.log(`│ ${u.role.padEnd(16)} │ ${u.email.padEnd(24)} │ ${u.password.padEnd(12)} │`)
-  }
-  console.log('└──────────────────┴──────────────────────────┴──────────────┘')
-  console.log('\n\x1b[1mPara correr el sistema:\x1b[0m')
-  console.log('  npm run dev')
-  console.log('  Abre → http://localhost:5173\n')
+  },
+  "include": ["src"],
+  "references": [{ "path": "./tsconfig.node.json" }]
 }
-
-main().catch(e => {
-  console.error('\x1b[31mError:\x1b[0m', e.message)
-  process.exit(1)
-})
