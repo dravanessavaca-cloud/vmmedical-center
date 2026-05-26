@@ -12,7 +12,7 @@ export function useMedicalRecords(userId: string) {
     setLoading(true)
     const { data, error: err } = await supabase
       .from('medical_records')
-      .select(`*, physician:profiles!medical_records_physician_id_fkey(id,full_name,specialty)`)
+      .select('*')
       .eq('patient_id', patientId)
       .is('deleted_at', null)
       .order('created_at', { ascending: false })
@@ -25,7 +25,7 @@ export function useMedicalRecords(userId: string) {
     setLoading(true)
     const { data, error: err } = await supabase
       .from('medical_records')
-      .select(`*, physician:profiles!medical_records_physician_id_fkey(id,full_name,specialty), patient:patients(*)`)
+      .select('*')
       .eq('id', id)
       .single()
     setLoading(false)
@@ -40,7 +40,7 @@ export function useMedicalRecords(userId: string) {
     const { data, error: err } = await supabase
       .from('medical_records')
       .insert({ ...input, created_by: userId })
-      .select(`*, physician:profiles!medical_records_physician_id_fkey(id,full_name,specialty)`)
+      .select('*')
       .single()
     setLoading(false)
     if (err || !data) { setError('Error al crear historia clínica.'); return null }
@@ -56,7 +56,7 @@ export function useMedicalRecords(userId: string) {
       .from('medical_records')
       .update({ ...updates, updated_by: userId })
       .eq('id', id)
-      .select(`*, physician:profiles!medical_records_physician_id_fkey(id,full_name,specialty)`)
+      .select('*')
       .single()
     if (err || !data) { setError('Error al guardar historia clínica.'); return false }
     const record = data as unknown as MedicalRecord
