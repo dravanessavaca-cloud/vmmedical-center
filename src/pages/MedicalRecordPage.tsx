@@ -279,7 +279,7 @@ function PodologyCanvas({ canvasId }: { canvasId: string }) {
           <p key={t} className="text-xs text-gray-400 font-medium">{t}</p>
         ))}
       </div>
-      <div className="relative border border-gray-200 rounded-lg overflow-hidden bg-white" style={{ height: '200px' }}>
+      <div className="relative border border-gray-200 rounded-lg overflow-hidden bg-white" style={{ height: '350px' }}>
         <canvas id={canvasId} style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', cursor: isEraser ? 'cell' : 'crosshair', touchAction: 'none' }} />
         <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%,-50%)', pointerEvents: 'none' }}>
           <p className="text-xs text-gray-300 text-center whitespace-nowrap">Dibuje aquí la ubicación de la lesión</p>
