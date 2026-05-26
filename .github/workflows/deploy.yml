@@ -27,8 +27,8 @@ jobs:
       - name: Build
         run: npm run build
         env:
-          VITE_SUPABASE_URL: https://pjwefetpngpmeaymzdew.supabase.co
-          VITE_SUPABASE_ANON_KEY: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBqd2VmZXRwbmdwbWVheW16ZGV3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk3MTU0ODYsImV4cCI6MjA5NTI5MTQ4Nn0.3y_E7nGbvSrFkVZhh1FE2aBpb4kgNNWW6E3gfQZo1zQ
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
 
       - name: Deploy to Cloudflare Pages
         uses: cloudflare/pages-action@v1
