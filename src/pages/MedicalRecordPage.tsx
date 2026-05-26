@@ -222,6 +222,8 @@ function PodologyForm({ onSave, onCancel, saving, initial }: { onSave: (data: Pa
             <Textarea label="TTO — Tratamiento" rows={3} {...register('therapeutic_plan')} />
           </div>
           <Textarea label="OBSERVACIONES" rows={3} {...register('observations')} />
+
+          {/* Ubicación de patologías */}
           <div className="border border-gray-200 rounded-xl p-4">
             <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">Ubicación de Patologías</p>
             <div className="grid grid-cols-4 gap-3 mb-3">
@@ -249,6 +251,41 @@ function PodologyForm({ onSave, onCancel, saving, initial }: { onSave: (data: Pa
               ))}
             </div>
           </div>
+
+          {/* Diagrama de pies */}
+          <div className="border border-gray-200 rounded-xl p-4">
+            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">Diagrama de pies</p>
+            <div className="w-full overflow-x-auto">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 600" width="100%" height="auto">
+                <style>{`.contorno { fill: none; stroke: currentColor; stroke-width: 2.5; stroke-linecap: round; stroke-linejoin: round; }`}</style>
+                <text x="190" y="115" textAnchor="middle" fontSize="18" fill="currentColor" opacity="0.4">Planta D</text>
+                <text x="405" y="115" textAnchor="middle" fontSize="18" fill="currentColor" opacity="0.4">Planta I</text>
+                <text x="655" y="95" textAnchor="middle" fontSize="18" fill="currentColor" opacity="0.4">Dorso D</text>
+                <text x="800" y="95" textAnchor="middle" fontSize="18" fill="currentColor" opacity="0.4">Dorso I</text>
+                <g id="vista-plantas">
+                  <path className="contorno" d="M 190,470 C 155,470 135,430 135,360 C 135,280 110,230 105,185 C 102,160 110,145 122,145 C 133,145 135,160 136,172 C 138,155 144,135 155,135 C 165,135 167,152 168,168 C 170,150 178,130 188,130 C 198,130 200,150 202,168 C 205,150 213,135 224,135 C 235,135 237,155 238,175 C 242,158 258,128 272,128 C 288,128 295,155 292,190 C 288,235 270,260 272,300 C 275,345 240,410 240,445 C 240,470 220,470 190,470 Z" />
+                  <path className="contorno" d="M 405,470 C 375,470 355,470 355,445 C 355,410 320,345 323,300 C 325,260 307,235 303,190 C 300,155 307,128 323,128 C 337,128 353,158 357,175 C 358,155 360,135 371,135 C 382,135 390,150 393,168 C 395,150 397,130 407,130 C 417,130 425,150 427,168 C 428,152 430,135 440,135 C 451,135 457,155 459,172 C 460,160 462,145 473,145 C 485,145 493,160 490,185 C 485,230 460,280 460,360 C 460,430 440,470 405,470 Z" />
+                </g>
+                <g id="vista-empeines">
+                  <path className="contorno" d="M 610,470 L 613,380 C 613,340 605,300 605,240 C 605,185 588,180 585,155 C 582,135 592,125 602,125 C 610,125 613,140 614,152 C 617,135 624,120 632,120 C 640,120 642,135 644,148 C 647,130 655,115 665,115 C 675,115 677,130 679,145 C 682,125 690,110 702,110 C 714,110 717,125 719,145 C 722,128 732,120 742,120 C 755,120 762,140 760,170 C 755,245 725,320 725,370" />
+                  <path className="contorno" d="M 714,410 L 700,470" />
+                  <path className="contorno" d="M 590,152 C 590,143 598,143 598,152 Z" />
+                  <path className="contorno" d="M 619,142 C 619,134 627,134 627,142 Z" />
+                  <path className="contorno" d="M 648,135 C 648,127 658,127 658,135 Z" />
+                  <path className="contorno" d="M 683,132 C 683,123 695,123 695,132 Z" />
+                  <path className="contorno" d="M 723,145 C 723,132 738,132 738,145 Z" />
+                  <path className="contorno" d="M 845,470 L 842,380 C 842,340 850,300 850,240 C 850,185 867,180 870,155 C 873,135 863,125 853,125 C 845,125 842,140 841,152 C 838,135 831,120 823,120 C 815,120 813,135 811,148 C 808,130 800,115 790,115 C 780,115 778,130 776,145 C 773,125 765,110 753,110 C 741,110 738,125 736,145 C 733,128 723,120 713,120 C 700,120 693,140 695,170 C 700,245 730,320 730,370" />
+                  <path className="contorno" d="M 741,410 L 755,470" />
+                  <path className="contorno" d="M 865,152 C 865,143 857,143 857,152 Z" />
+                  <path className="contorno" d="M 836,142 C 836,134 828,134 828,142 Z" />
+                  <path className="contorno" d="M 807,135 C 807,127 797,127 797,135 Z" />
+                  <path className="contorno" d="M 772,132 C 772,123 760,123 760,132 Z" />
+                  <path className="contorno" d="M 732,145 C 732,132 717,132 717,145 Z" />
+                </g>
+              </svg>
+            </div>
+          </div>
+
           <Textarea label="Indicaciones / Plan de seguimiento" rows={2} {...register('indications')} />
           <Input label="Fecha de control" type="date" {...register('follow_up_date')} />
         </div>
@@ -353,9 +390,7 @@ function PrintRecord({ record, patient, clinicSettings, isPodology, onClose }: {
                   <td key={h} className="border border-gray-400 px-2 py-1 font-bold">{h}</td>
                 ))}
               </tr>
-              <tr>
-                {[...Array(7)].map((_, i) => <td key={i} className="border border-gray-400 px-2 py-3"></td>)}
-              </tr>
+              <tr>{[...Array(7)].map((_, i) => <td key={i} className="border border-gray-400 px-2 py-3"></td>)}</tr>
             </tbody>
           </table>
           {record.physical_exam_general && <p className="mt-2 whitespace-pre-wrap">{record.physical_exam_general}</p>}
@@ -394,30 +429,29 @@ function PrintRecord({ record, patient, clinicSettings, isPodology, onClose }: {
             </div>
             <div className="mt-3">
               <p className="font-bold mb-2">Diagrama de pies:</p>
-              <div className="flex justify-center gap-8">
-                <div className="text-center">
-                  <svg width="60" height="80" viewBox="0 0 60 80" className="mx-auto">
-                    <ellipse cx="30" cy="65" rx="20" ry="15" fill="none" stroke="#333" strokeWidth="1.5"/>
-                    <ellipse cx="12" cy="20" rx="6" ry="12" fill="none" stroke="#333" strokeWidth="1"/>
-                    <ellipse cx="20" cy="12" rx="6" ry="10" fill="none" stroke="#333" strokeWidth="1"/>
-                    <ellipse cx="30" cy="10" rx="6" ry="10" fill="none" stroke="#333" strokeWidth="1"/>
-                    <ellipse cx="40" cy="13" rx="5" ry="8" fill="none" stroke="#333" strokeWidth="1"/>
-                    <ellipse cx="48" cy="18" rx="4" ry="7" fill="none" stroke="#333" strokeWidth="1"/>
-                  </svg>
-                  <p className="text-[9px] text-gray-500">D</p>
-                </div>
-                <div className="text-center">
-                  <svg width="60" height="80" viewBox="0 0 60 80" className="mx-auto">
-                    <ellipse cx="30" cy="65" rx="20" ry="15" fill="none" stroke="#333" strokeWidth="1.5"/>
-                    <ellipse cx="48" cy="20" rx="6" ry="12" fill="none" stroke="#333" strokeWidth="1"/>
-                    <ellipse cx="40" cy="12" rx="6" ry="10" fill="none" stroke="#333" strokeWidth="1"/>
-                    <ellipse cx="30" cy="10" rx="6" ry="10" fill="none" stroke="#333" strokeWidth="1"/>
-                    <ellipse cx="20" cy="13" rx="5" ry="8" fill="none" stroke="#333" strokeWidth="1"/>
-                    <ellipse cx="12" cy="18" rx="4" ry="7" fill="none" stroke="#333" strokeWidth="1"/>
-                  </svg>
-                  <p className="text-[9px] text-gray-500">I</p>
-                </div>
-              </div>
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 600" width="100%" height="auto">
+                <style>{`.cp { fill: none; stroke: #333; stroke-width: 2.5; stroke-linecap: round; stroke-linejoin: round; }`}</style>
+                <text x="190" y="115" textAnchor="middle" fontSize="18" fill="#666">Planta D</text>
+                <text x="405" y="115" textAnchor="middle" fontSize="18" fill="#666">Planta I</text>
+                <text x="655" y="95" textAnchor="middle" fontSize="18" fill="#666">Dorso D</text>
+                <text x="800" y="95" textAnchor="middle" fontSize="18" fill="#666">Dorso I</text>
+                <path className="cp" d="M 190,470 C 155,470 135,430 135,360 C 135,280 110,230 105,185 C 102,160 110,145 122,145 C 133,145 135,160 136,172 C 138,155 144,135 155,135 C 165,135 167,152 168,168 C 170,150 178,130 188,130 C 198,130 200,150 202,168 C 205,150 213,135 224,135 C 235,135 237,155 238,175 C 242,158 258,128 272,128 C 288,128 295,155 292,190 C 288,235 270,260 272,300 C 275,345 240,410 240,445 C 240,470 220,470 190,470 Z" />
+                <path className="cp" d="M 405,470 C 375,470 355,470 355,445 C 355,410 320,345 323,300 C 325,260 307,235 303,190 C 300,155 307,128 323,128 C 337,128 353,158 357,175 C 358,155 360,135 371,135 C 382,135 390,150 393,168 C 395,150 397,130 407,130 C 417,130 425,150 427,168 C 428,152 430,135 440,135 C 451,135 457,155 459,172 C 460,160 462,145 473,145 C 485,145 493,160 490,185 C 485,230 460,280 460,360 C 460,430 440,470 405,470 Z" />
+                <path className="cp" d="M 610,470 L 613,380 C 613,340 605,300 605,240 C 605,185 588,180 585,155 C 582,135 592,125 602,125 C 610,125 613,140 614,152 C 617,135 624,120 632,120 C 640,120 642,135 644,148 C 647,130 655,115 665,115 C 675,115 677,130 679,145 C 682,125 690,110 702,110 C 714,110 717,125 719,145 C 722,128 732,120 742,120 C 755,120 762,140 760,170 C 755,245 725,320 725,370" />
+                <path className="cp" d="M 714,410 L 700,470" />
+                <path className="cp" d="M 590,152 C 590,143 598,143 598,152 Z" />
+                <path className="cp" d="M 619,142 C 619,134 627,134 627,142 Z" />
+                <path className="cp" d="M 648,135 C 648,127 658,127 658,135 Z" />
+                <path className="cp" d="M 683,132 C 683,123 695,123 695,132 Z" />
+                <path className="cp" d="M 723,145 C 723,132 738,132 738,145 Z" />
+                <path className="cp" d="M 845,470 L 842,380 C 842,340 850,300 850,240 C 850,185 867,180 870,155 C 873,135 863,125 853,125 C 845,125 842,140 841,152 C 838,135 831,120 823,120 C 815,120 813,135 811,148 C 808,130 800,115 790,115 C 780,115 778,130 776,145 C 773,125 765,110 753,110 C 741,110 738,125 736,145 C 733,128 723,120 713,120 C 700,120 693,140 695,170 C 700,245 730,320 730,370" />
+                <path className="cp" d="M 741,410 L 755,470" />
+                <path className="cp" d="M 865,152 C 865,143 857,143 857,152 Z" />
+                <path className="cp" d="M 836,142 C 836,134 828,134 828,142 Z" />
+                <path className="cp" d="M 807,135 C 807,127 797,127 797,135 Z" />
+                <path className="cp" d="M 772,132 C 772,123 760,123 760,132 Z" />
+                <path className="cp" d="M 732,145 C 732,132 717,132 717,145 Z" />
+              </svg>
               <div className="mt-2 text-xs border border-gray-300 inline-block">
                 <table>
                   <thead><tr><th className="border border-gray-300 px-2 py-1">USO DE</th><th className="border border-gray-300 px-2 py-1">D</th><th className="border border-gray-300 px-2 py-1">I</th></tr></thead>
