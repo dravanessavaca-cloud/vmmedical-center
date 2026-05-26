@@ -10,7 +10,12 @@ export function useMedicalRecords(userId: string) {
 
   const fetchByPatient = useCallback(async (patientId: string) => {
     setLoading(true)
-    const { data, error: err } = await supabase.from('medical_records').select(`*, physician:profiles(id,full_name,specialty), vital_signs(*)`).eq('patient_id', patientId).is('deleted_at', null).order('created_at', { ascending: false })
+    const { data, error: err } = await supabase
+      .from('medical_records')
+      .select(`*, physician:profiles(id,full_name,specialty)`)
+      .eq('patient_id', patientId)
+      .is('deleted_at', null)
+      .order('created_at', { ascending: false })
     setLoading(false)
     if (err) { setError('Error al cargar historias clínicas.'); return }
     setRecords((data ?? []) as unknown as MedicalRecord[])
@@ -18,7 +23,11 @@ export function useMedicalRecords(userId: string) {
 
   const getRecord = useCallback(async (id: string) => {
     setLoading(true)
-    const { data, error: err } = await supabase.from('medical_records').select(`*, physician:profiles(id,full_name,specialty), vital_signs(*), patient:patients(*)`).eq('id', id).single()
+    const { data, error: err } = await supabase
+      .from('medical_records')
+      .select(`*, physician:profiles(id,full_name,specialty), patient:patients(*)`)
+      .eq('id', id)
+      .single()
     setLoading(false)
     if (err || !data) return null
     const record = data as unknown as MedicalRecord
@@ -28,7 +37,11 @@ export function useMedicalRecords(userId: string) {
 
   const createRecord = useCallback(async (input: MedicalRecordInsert): Promise<MedicalRecord | null> => {
     setLoading(true)
-    const { data, error: err } = await supabase.from('medical_records').insert({ ...input, created_by: userId }).select(`*, physician:profiles(*), vital_signs(*)`).single()
+    const { data, error: err } = await supabase
+      .from('medical_records')
+      .insert({ ...input, created_by: userId })
+      .select(`*, physician:profiles(*)`)
+      .single()
     setLoading(false)
     if (err || !data) { setError('Error al crear historia clínica.'); return null }
     const record = data as unknown as MedicalRecord
@@ -39,7 +52,12 @@ export function useMedicalRecords(userId: string) {
   }, [userId])
 
   const updateRecord = useCallback(async (id: string, updates: MedicalRecordUpdate): Promise<boolean> => {
-    const { data, error: err } = await supabase.from('medical_records').update({ ...updates, updated_by: userId }).eq('id', id).select(`*, physician:profiles(*), vital_signs(*)`).single()
+    const { data, error: err } = await supabase
+      .from('medical_records')
+      .update({ ...updates, updated_by: userId })
+      .eq('id', id)
+      .select(`*, physician:profiles(*)`)
+      .single()
     if (err || !data) { setError('Error al guardar historia clínica.'); return false }
     const record = data as unknown as MedicalRecord
     setCurrentRecord(record)
