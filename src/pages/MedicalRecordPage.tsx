@@ -205,25 +205,17 @@ function PodologyCanvas({ canvasId }: { canvasId: string }) {
     let drawing = false, lx = 0, ly = 0
 
     const resize = () => {
-      const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height)
       const r = canvas.getBoundingClientRect()
-      canvas.width = r.width * window.devicePixelRatio
-      canvas.height = r.height * window.devicePixelRatio
-      ctx.scale(window.devicePixelRatio, window.devicePixelRatio)
-      ctx.putImageData(imageData, 0, 0)
+      canvas.width = r.width
+      canvas.height = r.height
     }
-    const r = canvas.getBoundingClientRect()
-    canvas.width = r.width * window.devicePixelRatio
-    canvas.height = r.height * window.devicePixelRatio
-    ctx.scale(window.devicePixelRatio, window.devicePixelRatio)
+    resize()
+    window.addEventListener('resize', resize)
 
     const getPos = (e: MouseEvent | TouchEvent) => {
       const rect = canvas.getBoundingClientRect()
       const src = 'touches' in e ? e.touches[0] : e as MouseEvent
-      return {
-        x: (src.clientX - rect.left),
-        y: (src.clientY - rect.top)
-      }
+      return { x: src.clientX - rect.left, y: src.clientY - rect.top }
     }
 
     const start = (e: any) => { e.preventDefault(); drawing = true; const p = getPos(e); lx = p.x; ly = p.y }
@@ -231,13 +223,10 @@ function PodologyCanvas({ canvasId }: { canvasId: string }) {
       if (!drawing) return
       e.preventDefault()
       const p = getPos(e)
-      ctx.beginPath()
-      ctx.moveTo(lx, ly)
-      ctx.lineTo(p.x, p.y)
+      ctx.beginPath(); ctx.moveTo(lx, ly); ctx.lineTo(p.x, p.y)
       ctx.strokeStyle = isEraser ? '#ffffff' : color
       ctx.lineWidth = isEraser ? brushSize * 4 : brushSize
-      ctx.lineCap = 'round'
-      ctx.lineJoin = 'round'
+      ctx.lineCap = 'round'; ctx.lineJoin = 'round'
       ctx.globalCompositeOperation = isEraser ? 'destination-out' : 'source-over'
       ctx.stroke()
       lx = p.x; ly = p.y
@@ -251,16 +240,12 @@ function PodologyCanvas({ canvasId }: { canvasId: string }) {
     canvas.addEventListener('touchstart', start, { passive: false })
     canvas.addEventListener('touchmove', move, { passive: false })
     canvas.addEventListener('touchend', stop)
-    window.addEventListener('resize', resize)
 
     return () => {
       canvas.removeEventListener('mousedown', start)
       canvas.removeEventListener('mousemove', move)
       canvas.removeEventListener('mouseup', stop)
       canvas.removeEventListener('mouseleave', stop)
-      canvas.removeEventListener('touchstart', start)
-      canvas.removeEventListener('touchmove', move)
-      canvas.removeEventListener('touchend', stop)
       window.removeEventListener('resize', resize)
     }
   }, [color, brushSize, isEraser, canvasId])
@@ -268,8 +253,7 @@ function PodologyCanvas({ canvasId }: { canvasId: string }) {
   const clearCanvas = () => {
     const canvas = document.getElementById(canvasId) as HTMLCanvasElement
     if (!canvas) return
-    const ctx = canvas.getContext('2d')!
-    ctx.clearRect(0, 0, canvas.width, canvas.height)
+    canvas.getContext('2d')!.clearRect(0, 0, canvas.width, canvas.height)
   }
 
   return (
@@ -353,7 +337,6 @@ function PodologyForm({ onSave, onCancel, saving, initial }: { onSave: (data: Pa
           </div>
           <Textarea label="OBSERVACIONES" rows={3} {...register('observations')} />
 
-          {/* Ubicación de patologías */}
           <div className="border border-gray-200 rounded-xl p-4">
             <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">Ubicación de Patologías</p>
             <div className="grid grid-cols-4 gap-3 mb-3">
@@ -382,13 +365,11 @@ function PodologyForm({ onSave, onCancel, saving, initial }: { onSave: (data: Pa
             </div>
           </div>
 
-          {/* Diagrama de pies — canvas en blanco */}
           <div className="border border-gray-200 rounded-xl p-4">
             <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">Diagrama de pies</p>
             <PodologyCanvas canvasId="podCanvasForm" />
           </div>
 
-          {/* Imagen de lesión */}
           <div className="border border-gray-200 rounded-xl p-4">
             <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">Imagen de lesión</p>
             {imageUrl ? (
@@ -478,11 +459,22 @@ function PrintRecord({ record, patient, clinicSettings, isPodology, onClose }: {
   clinicSettings: { name: string; address: string; phone: string }
   isPodology: boolean; onClose: () => void
 }) {
+  const handlePrint = () => {
+    // Capturar canvas como imagen antes de imprimir
+    const canvas = document.getElementById('podCanvasForm') as HTMLCanvasElement
+    if (canvas) {
+      const imgData = canvas.toDataURL('image/png')
+      const printImg = document.getElementById('podCanvasPrint') as HTMLImageElement
+      if (printImg) printImg.src = imgData
+    }
+    window.print()
+  }
+
   return (
     <div className="fixed inset-0 z-50 bg-white overflow-auto">
       <div className="no-print flex items-center gap-3 px-6 py-3 bg-gray-100 border-b">
         <button onClick={onClose} className="px-4 py-2 rounded-lg border border-gray-300 text-sm hover:bg-gray-50">← Volver</button>
-        <button onClick={() => window.print()} className="px-4 py-2 rounded-lg bg-teal-600 text-white text-sm hover:bg-teal-700">🖨️ Imprimir</button>
+        <button onClick={handlePrint} className="px-4 py-2 rounded-lg bg-teal-600 text-white text-sm hover:bg-teal-700">🖨️ Imprimir</button>
       </div>
       <div className="print-page max-w-[210mm] mx-auto p-8 my-4 border border-gray-200 text-xs">
         <div className="flex items-center justify-center gap-4 mb-4 pb-3 border-b-2 border-gray-300">
@@ -552,20 +544,16 @@ function PrintRecord({ record, patient, clinicSettings, isPodology, onClose }: {
                 </div>
               ))}
             </div>
+            <div className="mt-3">
+              <p className="font-bold mb-1">Diagrama de lesión:</p>
+              <img id="podCanvasPrint" alt="Diagrama lesión" style={{ width: '100%', maxHeight: '200px', objectFit: 'contain', border: '1px solid #e5e7eb', borderRadius: '4px' }} />
+            </div>
             {(record as any).podology_image_url && (
               <div className="mt-3">
                 <p className="font-bold mb-1">Imagen de lesión:</p>
                 <img src={(record as any).podology_image_url} alt="Lesión" className="max-h-48 rounded border border-gray-300" />
               </div>
             )}
-            <div className="mt-3 border border-gray-300 p-2 rounded">
-              <p className="font-bold text-xs mb-1">Diagrama de pies — esquema:</p>
-              <div className="grid grid-cols-4 gap-2 text-center text-xs text-gray-400">
-                {['Planta D', 'Planta I', 'Dorso D', 'Dorso I'].map(t => (
-                  <div key={t} className="border border-gray-200 rounded h-16 flex items-end justify-center pb-1">{t}</div>
-                ))}
-              </div>
-            </div>
             <div className="mt-2 text-xs border border-gray-300 inline-block">
               <table>
                 <thead><tr><th className="border border-gray-300 px-2 py-1">USO DE</th><th className="border border-gray-300 px-2 py-1">D</th><th className="border border-gray-300 px-2 py-1">I</th></tr></thead>
