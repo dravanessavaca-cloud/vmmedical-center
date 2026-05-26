@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
-import { FileText, Plus, Save, ChevronRight, Calendar, Activity, Printer } from 'lucide-react'
+import { FileText, Plus, Save, ChevronRight, Calendar, Activity, Printer, Upload, X } from 'lucide-react'
 import { Button, Input, Textarea, Modal, Avatar, Tabs, Badge } from '@/components/ui'
 import { Card, CardHeader } from '@/components/ui/Card'
 import { VitalSignsForm } from '@/components/vital-signs/VitalSignsForm'
@@ -195,14 +195,37 @@ function MedicalForm({ onSave, onCancel, saving, initial }: { onSave: (data: Par
 // ── Formulario Podología ──────────────────────────────────────
 function PodologyForm({ onSave, onCancel, saving, initial }: { onSave: (data: Partial<MedicalRecordInsert>) => void; onCancel: () => void; saving: boolean; initial?: MedicalRecord }) {
   const { register, handleSubmit } = useForm<MedicalRecordInsert & { podology_conditions: string[]; podology_mobility: string[] }>({ defaultValues: initial ?? {} })
+  const [imageUrl, setImageUrl] = useState<string | null>((initial as any)?.podology_image_url ?? null)
+  const [uploading, setUploading] = useState(false)
   const CONDITIONS = ['Bromhidrosis','Xerosis','Dermatitis','Paroniquia']
   const MOBILITY = ['Silla de Ruedas','Andador','Muletas','Bastón']
   const DEVICES = ['Plantillas D','Plantillas I','Separador Int D','Separador Int I','Taloneras D','Taloneras I']
 
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setUploading(true)
+    const fileName = `${Date.now()}-${file.name.replace(/\s/g, '_')}`
+    const { data, error } = await supabase.storage.from('podology-images').upload(fileName, file)
+    if (!error && data) {
+      const { data: urlData } = supabase.storage.from('podology-images').getPublicUrl(data.path)
+      setImageUrl(urlData.publicUrl)
+    }
+    setUploading(false)
+  }
+
+  const handleRemoveImage = async () => {
+    setImageUrl(null)
+  }
+
+  const handleSave = (data: any) => {
+    onSave({ ...data, podology_image_url: imageUrl })
+  }
+
   return (
     <Card>
       <CardHeader title={initial ? 'Editar Historia Podológica' : 'Nueva Historia Clínica — Podología'} />
-      <form onSubmit={handleSubmit(onSave)}>
+      <form onSubmit={handleSubmit(handleSave)}>
         <div className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
             <Textarea label="ALERGIAS" rows={1} {...register('allergies')} />
@@ -286,6 +309,27 @@ function PodologyForm({ onSave, onCancel, saving, initial }: { onSave: (data: Pa
             </div>
           </div>
 
+          {/* Imagen de lesión */}
+          <div className="border border-gray-200 rounded-xl p-4">
+            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">Imagen de lesión</p>
+            {imageUrl ? (
+              <div className="relative inline-block">
+                <img src={imageUrl} alt="Lesión podológica" className="max-h-48 rounded-lg border border-gray-200 object-cover" />
+                <button type="button" onClick={handleRemoveImage}
+                  className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600">
+                  <X size={12} />
+                </button>
+              </div>
+            ) : (
+              <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-gray-300 rounded-xl cursor-pointer hover:border-teal-400 hover:bg-teal-50 transition-colors">
+                <Upload size={24} className="text-gray-400 mb-2" />
+                <span className="text-sm text-gray-500">{uploading ? 'Subiendo...' : 'Subir imagen de lesión'}</span>
+                <span className="text-xs text-gray-400 mt-1">JPG, PNG o WEBP · máx 5MB</span>
+                <input type="file" accept="image/jpeg,image/png,image/webp" className="hidden" onChange={handleImageUpload} disabled={uploading} />
+              </label>
+            )}
+          </div>
+
           <Textarea label="Indicaciones / Plan de seguimiento" rows={2} {...register('indications')} />
           <Input label="Fecha de control" type="date" {...register('follow_up_date')} />
         </div>
@@ -324,6 +368,12 @@ function RecordCard({ record, onEdit, canEdit, onPrint }: { record: MedicalRecor
           {record.therapeutic_plan && <Field label="TTO" value={record.therapeutic_plan} />}
           {record.observations && <Field label="Observaciones" value={record.observations} />}
           {record.follow_up_date && <Field label="Control" value={formatDate(record.follow_up_date)} />}
+          {(record as any).podology_image_url && (
+            <div>
+              <p className="text-xs font-bold text-gray-500 uppercase mb-1">Imagen de lesión</p>
+              <img src={(record as any).podology_image_url} alt="Lesión" className="max-h-40 rounded-lg border border-gray-200" />
+            </div>
+          )}
           <div className="flex gap-2 pt-2">
             <Button variant="outline" size="sm" icon={<Printer size={14} />} onClick={() => onPrint(record)}>Imprimir</Button>
             {canEdit && <Button variant="ghost" size="sm" onClick={() => onEdit(record)}>Editar</Button>}
@@ -385,11 +435,7 @@ function PrintRecord({ record, patient, clinicSettings, isPodology, onClose }: {
           <p className="font-bold mb-1">EX FISICO:</p>
           <table className="w-full border border-gray-400 text-xs">
             <tbody>
-              <tr>
-                {['FC:','FR:','SATO2:','T:','PESO:','TALLA:', isPodology ? 'PR.AR.' : 'TA:'].map(h => (
-                  <td key={h} className="border border-gray-400 px-2 py-1 font-bold">{h}</td>
-                ))}
-              </tr>
+              <tr>{['FC:','FR:','SATO2:','T:','PESO:','TALLA:', isPodology ? 'PR.AR.' : 'TA:'].map(h => (<td key={h} className="border border-gray-400 px-2 py-1 font-bold">{h}</td>))}</tr>
               <tr>{[...Array(7)].map((_, i) => <td key={i} className="border border-gray-400 px-2 py-3"></td>)}</tr>
             </tbody>
           </table>
@@ -452,6 +498,12 @@ function PrintRecord({ record, patient, clinicSettings, isPodology, onClose }: {
                 <path className="cp" d="M 772,132 C 772,123 760,123 760,132 Z" />
                 <path className="cp" d="M 732,145 C 732,132 717,132 717,145 Z" />
               </svg>
+              {(record as any).podology_image_url && (
+                <div className="mt-3">
+                  <p className="font-bold mb-1">Imagen de lesión:</p>
+                  <img src={(record as any).podology_image_url} alt="Lesión" className="max-h-48 rounded border border-gray-300" />
+                </div>
+              )}
               <div className="mt-2 text-xs border border-gray-300 inline-block">
                 <table>
                   <thead><tr><th className="border border-gray-300 px-2 py-1">USO DE</th><th className="border border-gray-300 px-2 py-1">D</th><th className="border border-gray-300 px-2 py-1">I</th></tr></thead>
