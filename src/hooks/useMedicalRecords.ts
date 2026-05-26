@@ -1,35 +1,51 @@
-import { forwardRef, type TextareaHTMLAttributes } from 'react'
-import { cn } from '@/utils'
+import { useState, useCallback } from 'react'
+import { supabase, logAuditEvent } from '@/lib/supabase'
+import type { MedicalRecord, MedicalRecordInsert, MedicalRecordUpdate } from '@/types'
 
-interface TextareaProps extends TextareaHTMLAttributes<HTMLTextAreaElement> {
-  label?: string
-  error?: string
+export function useMedicalRecords(userId: string) {
+  const [records, setRecords] = useState<MedicalRecord[]>([])
+  const [currentRecord, setCurrentRecord] = useState<MedicalRecord | null>(null)
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  const fetchByPatient = useCallback(async (patientId: string) => {
+    setLoading(true)
+    const { data, error: err } = await supabase.from('medical_records').select(`*, physician:profiles(id,full_name,specialty), vital_signs(*)`).eq('patient_id', patientId).is('deleted_at', null).order('created_at', { ascending: false })
+    setLoading(false)
+    if (err) { setError('Error al cargar historias clínicas.'); return }
+    setRecords((data ?? []) as unknown as MedicalRecord[])
+  }, [])
+
+  const getRecord = useCallback(async (id: string) => {
+    setLoading(true)
+    const { data, error: err } = await supabase.from('medical_records').select(`*, physician:profiles(id,full_name,specialty), vital_signs(*), patient:patients(*)`).eq('id', id).single()
+    setLoading(false)
+    if (err || !data) return null
+    const record = data as unknown as MedicalRecord
+    setCurrentRecord(record)
+    return record
+  }, [])
+
+  const createRecord = useCallback(async (input: MedicalRecordInsert): Promise<MedicalRecord | null> => {
+    setLoading(true)
+    const { data, error: err } = await supabase.from('medical_records').insert({ ...input, created_by: userId }).select(`*, physician:profiles(*), vital_signs(*)`).single()
+    setLoading(false)
+    if (err || !data) { setError('Error al crear historia clínica.'); return null }
+    const record = data as unknown as MedicalRecord
+    await logAuditEvent({ action: 'INSERT', tableName: 'medical_records', recordId: record.id, newData: input as unknown as Record<string, unknown> })
+    setRecords(prev => [record, ...prev])
+    setCurrentRecord(record)
+    return record
+  }, [userId])
+
+  const updateRecord = useCallback(async (id: string, updates: MedicalRecordUpdate): Promise<boolean> => {
+    const { data, error: err } = await supabase.from('medical_records').update({ ...updates, updated_by: userId }).eq('id', id).select(`*, physician:profiles(*), vital_signs(*)`).single()
+    if (err || !data) { setError('Error al guardar historia clínica.'); return false }
+    const record = data as unknown as MedicalRecord
+    setCurrentRecord(record)
+    setRecords(prev => prev.map(r => r.id === id ? record : r))
+    return true
+  }, [userId])
+
+  return { records, currentRecord, loading, error, fetchByPatient, getRecord, createRecord, updateRecord }
 }
-
-export const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(({
-  label, error, className, id, ...props
-}, ref) => {
-  const areaId = id ?? label?.toLowerCase().replace(/\s+/g, '-')
-  return (
-    <div className="flex flex-col gap-1">
-      {label && (
-        <label htmlFor={areaId} className="text-xs font-medium text-gray-600 uppercase tracking-wide">
-          {label}
-        </label>
-      )}
-      <textarea
-        ref={ref}
-        id={areaId}
-        className={cn(
-          'w-full px-3 py-2 rounded-lg border text-sm font-sans transition-colors resize-y min-h-[80px]',
-          'focus:outline-none focus:ring-2 focus:ring-teal-400 focus:border-transparent',
-          error ? 'border-red-400 bg-red-50' : 'border-gray-300 hover:border-gray-400',
-          className
-        )}
-        {...props}
-      />
-      {error && <p className="text-xs text-red-600">{error}</p>}
-    </div>
-  )
-})
-Textarea.displayName = 'Textarea'

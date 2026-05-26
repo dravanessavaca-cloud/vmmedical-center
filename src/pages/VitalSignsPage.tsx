@@ -1,40 +1,88 @@
-import { cn, bmiCategory } from '@/utils'
-import type { VitalSigns } from '@/types'
+import { useState, useEffect } from 'react'
+import { VitalSignsForm } from '@/components/vital-signs/VitalSignsForm'
+import { VitalSignsDisplay } from '@/components/vital-signs/VitalSignsDisplay'
+import { useVitalSigns } from '@/hooks/useVitalSigns'
+import { usePatients } from '@/hooks/usePatients'
+import { Card, CardHeader } from '@/components/ui/Card'
+import { Avatar } from '@/components/ui'
+import { fullName, calculateAge, formatDate } from '@/utils'
+import type { Profile, Patient } from '@/types'
 
-interface VitalSignsDisplayProps {
-  vitals: VitalSigns
-  compact?: boolean
-  className?: string
-}
+interface VitalSignsPageProps { profile: Profile }
 
-export function VitalSignsDisplay({ vitals, compact = false, className }: VitalSignsDisplayProps) {
-  const metrics = [
-    { label: 'Peso', value: vitals.weight_kg ? `${vitals.weight_kg} kg` : null },
-    { label: 'Talla', value: vitals.height_cm ? `${vitals.height_cm} cm` : null },
-    { label: 'IMC', value: vitals.bmi ? String(vitals.bmi) : null, extra: vitals.bmi ? bmiCategory(vitals.bmi).label : undefined, extraColor: vitals.bmi ? bmiCategory(vitals.bmi).color : undefined },
-    { label: 'T°', value: vitals.temperature_c ? `${vitals.temperature_c}°C` : null },
-    { label: 'FC', value: vitals.heart_rate_bpm ? `${vitals.heart_rate_bpm} bpm` : null },
-    { label: 'FR', value: vitals.respiratory_rate_rpm ? `${vitals.respiratory_rate_rpm} rpm` : null },
-    { label: 'SpO₂', value: vitals.oxygen_saturation_pct ? `${vitals.oxygen_saturation_pct}%` : null },
-    { label: 'PA', value: vitals.systolic_bp && vitals.diastolic_bp ? `${vitals.systolic_bp}/${vitals.diastolic_bp}` : null },
-    { label: 'Glucosa', value: vitals.blood_glucose_mgdl ? `${vitals.blood_glucose_mgdl} mg/dL` : null },
-  ].filter(m => m.value !== null)
+export function VitalSignsPage({ profile }: VitalSignsPageProps) {
+  const { patients, fetchPatients } = usePatients({ userId: profile.id })
+  const { vitalSigns, history, fetchLatest, fetchHistory, saveVitalSigns } = useVitalSigns(profile.id)
+  const [selectedPatient, setSelectedPatient] = useState<Patient | null>(null)
+  const [search, setSearch] = useState('')
+  const [saved, setSaved] = useState(false)
 
-  if (metrics.length === 0) return null
+  useEffect(() => { fetchPatients() }, [])
+
+  const handleSelect = (p: Patient) => {
+    setSelectedPatient(p)
+    fetchLatest(p.id)
+    fetchHistory(p.id)
+    setSaved(false)
+  }
+
+  const filtered = patients.filter(p =>
+    search === '' ||
+    `${p.first_name} ${p.last_name}`.toLowerCase().includes(search.toLowerCase()) ||
+    p.id_number.includes(search)
+  )
 
   return (
-    <div className={cn('', className)}>
-      <p className="text-xs font-medium text-gray-400 uppercase tracking-wide mb-2">
-        Signos Vitales {compact ? '' : '— Último registro'}
-      </p>
-      <div className={cn('flex flex-wrap gap-2')}>
-        {metrics.map(m => (
-          <div key={m.label} className="bg-gray-50 border border-gray-100 rounded-lg px-2.5 py-1.5">
-            <p className="text-[10px] text-gray-400 uppercase tracking-wide">{m.label}</p>
-            <p className="text-sm font-medium text-gray-800">{m.value}</p>
-            {m.extra && <p className={cn('text-[10px]', m.extraColor)}>{m.extra}</p>}
-          </div>
-        ))}
+    <div className="flex gap-5">
+      <div className="w-72 flex-shrink-0 space-y-2">
+        <input placeholder="Buscar paciente..." value={search} onChange={e => setSearch(e.target.value)}
+          className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-400" />
+        <div className="space-y-1 max-h-[calc(100vh-200px)] overflow-y-auto">
+          {filtered.slice(0, 30).map(p => (
+            <button key={p.id} onClick={() => handleSelect(p)}
+              className={`w-full flex items-center gap-2 px-3 py-2.5 rounded-xl text-left transition-all ${selectedPatient?.id === p.id ? 'bg-teal-50 border border-teal-200' : 'hover:bg-gray-50 border border-transparent'}`}>
+              <Avatar name={fullName(p.first_name, p.last_name)} size="sm" />
+              <div>
+                <p className="text-sm font-medium text-gray-900">{fullName(p.first_name, p.last_name)}</p>
+                <p className="text-xs text-gray-400">{p.medical_record_number} · {calculateAge(p.date_of_birth)}a</p>
+              </div>
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div className="flex-1 space-y-4">
+        {!selectedPatient ? (
+          <Card><p className="text-sm text-gray-400 text-center py-8">Selecciona un paciente para registrar signos vitales</p></Card>
+        ) : (
+          <>
+            <Card>
+              <div className="flex items-center gap-3 mb-4">
+                <Avatar name={fullName(selectedPatient.first_name, selectedPatient.last_name)} size="md" />
+                <div>
+                  <h3 className="font-medium text-gray-900">{fullName(selectedPatient.first_name, selectedPatient.last_name)}</h3>
+                  <p className="text-sm text-gray-500">{selectedPatient.medical_record_number} · {calculateAge(selectedPatient.date_of_birth)} años</p>
+                </div>
+              </div>
+              {saved && <div className="bg-green-50 border border-green-200 rounded-lg px-4 py-2.5 mb-4 text-sm text-green-700">✓ Signos vitales guardados correctamente</div>}
+              <VitalSignsForm patientId={selectedPatient.id} userId={profile.id} onSave={async (data) => { await saveVitalSigns(data); setSaved(true) }} />
+            </Card>
+            {vitalSigns && <Card><CardHeader title="Último registro" /><VitalSignsDisplay vitals={vitalSigns} /></Card>}
+            {history.length > 1 && (
+              <Card>
+                <CardHeader title="Historial" />
+                <div className="space-y-3">
+                  {history.slice(1).map(vs => (
+                    <div key={vs.id} className="border-b border-gray-50 pb-3">
+                      <p className="text-xs text-gray-400 mb-2">{formatDate(vs.created_at, "d 'de' MMMM yyyy · HH:mm")}</p>
+                      <VitalSignsDisplay vitals={vs} compact />
+                    </div>
+                  ))}
+                </div>
+              </Card>
+            )}
+          </>
+        )}
       </div>
     </div>
   )

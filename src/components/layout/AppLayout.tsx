@@ -1,49 +1,30 @@
-import { forwardRef, type SelectHTMLAttributes } from 'react'
-import { cn } from '@/utils'
-import type { SelectOption } from '@/types'
+import { Outlet, useLocation } from 'react-router-dom'
+import { Sidebar } from './Sidebar'
+import { Topbar } from './Topbar'
+import type { Profile } from '@/types'
 
-interface SelectProps extends SelectHTMLAttributes<HTMLSelectElement> {
-  label?: string
-  error?: string
-  options: SelectOption[]
-  placeholder?: string
+const PAGE_TITLES: Record<string, string> = {
+  '/dashboard': 'Dashboard', '/pacientes': 'Gestión de Pacientes', '/agenda': 'Agenda Médica',
+  '/historias': 'Historias Clínicas', '/recetas': 'Recetas Médicas', '/certificados': 'Certificados Médicos',
+  '/laboratorio': 'Pedidos de Laboratorio', '/imagenes': 'Pedidos de Imagen', '/interconsultas': 'Interconsultas',
+  '/epicrisis': 'Epicrisis', '/facturacion': 'Facturación', '/usuarios': 'Gestión de Usuarios',
+  '/auditoria': 'Auditoría del Sistema', '/configuracion': 'Configuración',
+  '/signos-vitales': 'Signos Vitales', '/vacunas': 'Registro de Vacunas', '/evoluciones': 'Evoluciones Podológicas',
 }
 
-export const Select = forwardRef<HTMLSelectElement, SelectProps>(({
-  label,
-  error,
-  options,
-  placeholder,
-  className,
-  id,
-  ...props
-}, ref) => {
-  const selectId = id ?? label?.toLowerCase().replace(/\s+/g, '-')
+interface AppLayoutProps { profile: Profile; onLogout: () => void }
+
+export function AppLayout({ profile, onLogout }: AppLayoutProps) {
+  const location = useLocation()
+  const basePath = '/' + location.pathname.split('/')[1]
+  const title = PAGE_TITLES[basePath] ?? 'VM Medical Center'
   return (
-    <div className="flex flex-col gap-1">
-      {label && (
-        <label htmlFor={selectId} className="text-xs font-medium text-gray-600 uppercase tracking-wide">
-          {label}
-        </label>
-      )}
-      <select
-        ref={ref}
-        id={selectId}
-        className={cn(
-          'w-full px-3 py-2 rounded-lg border text-sm font-sans transition-colors bg-white',
-          'focus:outline-none focus:ring-2 focus:ring-teal-400 focus:border-transparent',
-          error ? 'border-red-400 bg-red-50' : 'border-gray-300 hover:border-gray-400',
-          className
-        )}
-        {...props}
-      >
-        {placeholder && <option value="">{placeholder}</option>}
-        {options.map(opt => (
-          <option key={opt.value} value={opt.value}>{opt.label}</option>
-        ))}
-      </select>
-      {error && <p className="text-xs text-red-600">{error}</p>}
+    <div className="flex h-screen bg-gray-50 overflow-hidden">
+      <Sidebar profile={profile} onLogout={onLogout} />
+      <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
+        <Topbar title={title} />
+        <main className="flex-1 overflow-y-auto p-6"><Outlet /></main>
+      </div>
     </div>
   )
-})
-Select.displayName = 'Select'
+}

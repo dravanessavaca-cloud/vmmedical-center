@@ -1,160 +1,46 @@
-// ============================================================
-// VM Medical Center — Sidebar de navegación
-// ============================================================
-import { NavLink } from 'react-router-dom'
-import {
-  LayoutDashboard, Users, CalendarDays, FileText, ClipboardList,
-  Award, FlaskConical, Image, CreditCard, UserCog, ScrollText,
-  Settings, Activity, Syringe, ArrowLeftRight, FileStack, Heart,
-  TrendingUp, LogOut, ChevronRight,
-} from 'lucide-react'
-import { cn } from '@/utils'
-import type { Profile } from '@/types'
+export type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[]
 
-interface NavItem {
-  to: string
-  icon: React.ReactNode
-  label: string
-}
-
-interface NavSection {
-  title: string
-  items: NavItem[]
-}
-
-function getNavSections(role: string): NavSection[] {
-  const common: NavItem[] = [
-    { to: '/dashboard', icon: <LayoutDashboard size={17} />, label: 'Dashboard' },
-  ]
-
-  if (role === 'admin') {
-    return [
-      { title: 'Principal', items: [...common, { to: '/pacientes', icon: <Users size={17} />, label: 'Pacientes' }, { to: '/agenda', icon: <CalendarDays size={17} />, label: 'Agenda' }] },
-      { title: 'Clínica', items: [
-        { to: '/historias', icon: <FileText size={17} />, label: 'Historias Clínicas' },
-        { to: '/recetas', icon: <ClipboardList size={17} />, label: 'Recetas' },
-        { to: '/certificados', icon: <Award size={17} />, label: 'Certificados' },
-        { to: '/laboratorio', icon: <FlaskConical size={17} />, label: 'Laboratorio' },
-        { to: '/imagenes', icon: <Image size={17} />, label: 'Imágenes' },
-        { to: '/interconsultas', icon: <ArrowLeftRight size={17} />, label: 'Interconsultas' },
-        { to: '/epicrisis', icon: <FileStack size={17} />, label: 'Epicrisis' },
-      ]},
-      { title: 'Administración', items: [
-        { to: '/facturacion', icon: <CreditCard size={17} />, label: 'Facturación' },
-        { to: '/usuarios', icon: <UserCog size={17} />, label: 'Usuarios' },
-        { to: '/auditoria', icon: <ScrollText size={17} />, label: 'Auditoría' },
-        { to: '/configuracion', icon: <Settings size={17} />, label: 'Configuración' },
-      ]},
-    ]
+export interface Database {
+  public: {
+    Tables: {
+      profiles: {
+        Row: { id: string; email: string; full_name: string; role: string; specialty: string | null; license_number: string | null; phone: string | null; avatar_url: string | null; is_active: boolean; created_at: string; updated_at: string }
+        Insert: Omit<Database['public']['Tables']['profiles']['Row'], 'created_at' | 'updated_at'>
+        Update: Partial<Database['public']['Tables']['profiles']['Insert']>
+      }
+      patients: {
+        Row: { id: string; medical_record_number: string; first_name: string; last_name: string; id_number: string; date_of_birth: string; gender: string; blood_type: string | null; phone: string; email: string | null; address: string | null; city: string | null; occupation: string | null; emergency_contact_name: string | null; emergency_contact_phone: string | null; emergency_contact_relation: string | null; insurance_company: string | null; insurance_number: string | null; notes: string | null; is_active: boolean; created_by: string; updated_by: string | null; created_at: string; updated_at: string; deleted_at: string | null }
+        Insert: Omit<Database['public']['Tables']['patients']['Row'], 'id' | 'medical_record_number' | 'created_at' | 'updated_at'>
+        Update: Partial<Database['public']['Tables']['patients']['Insert']>
+      }
+      appointments: {
+        Row: { id: string; patient_id: string; professional_id: string; appointment_date: string; appointment_time: string; duration_minutes: number; type: string; reason: string; status: string; notes: string | null; google_event_id: string | null; google_calendar_id: string | null; sync_status: string | null; last_synced_at: string | null; cancelled_reason: string | null; created_by: string; updated_by: string | null; created_at: string; updated_at: string }
+        Insert: Omit<Database['public']['Tables']['appointments']['Row'], 'id' | 'created_at' | 'updated_at'>
+        Update: Partial<Database['public']['Tables']['appointments']['Insert']>
+      }
+      medical_records: {
+        Row: { id: string; patient_id: string; appointment_id: string | null; physician_id: string; chief_complaint: string; current_illness: string; personal_history: string | null; surgical_history: string | null; family_history: string | null; allergies: string | null; current_medications: string | null; systems_review: string | null; physical_exam_general: string | null; physical_exam_systems: string | null; presumptive_diagnosis: string | null; definitive_diagnosis: string | null; cie10_code: string | null; cie10_description: string | null; therapeutic_plan: string | null; indications: string | null; observations: string | null; follow_up_date: string | null; is_complete: boolean; created_by: string; updated_by: string | null; created_at: string; updated_at: string; deleted_at: string | null }
+        Insert: Omit<Database['public']['Tables']['medical_records']['Row'], 'id' | 'created_at' | 'updated_at'>
+        Update: Partial<Database['public']['Tables']['medical_records']['Insert']>
+      }
+      vital_signs: {
+        Row: { id: string; patient_id: string; appointment_id: string | null; medical_record_id: string | null; weight_kg: number | null; height_cm: number | null; bmi: number | null; temperature_c: number | null; heart_rate_bpm: number | null; respiratory_rate_rpm: number | null; oxygen_saturation_pct: number | null; systolic_bp: number | null; diastolic_bp: number | null; blood_glucose_mgdl: number | null; observations: string | null; recorded_by: string; created_at: string; updated_at: string }
+        Insert: Omit<Database['public']['Tables']['vital_signs']['Row'], 'id' | 'created_at' | 'updated_at'>
+        Update: Partial<Database['public']['Tables']['vital_signs']['Insert']>
+      }
+      audit_log: {
+        Row: { id: string; user_id: string; action: string; table_name: string; record_id: string; old_data: Json | null; new_data: Json | null; ip_address: string | null; user_agent: string | null; created_at: string }
+        Insert: Omit<Database['public']['Tables']['audit_log']['Row'], 'id' | 'created_at'>
+        Update: never
+      }
+      clinic_settings: {
+        Row: { id: string; clinic_name: string; ruc: string | null; address: string | null; city: string | null; phone: string | null; whatsapp: string | null; email: string | null; website: string | null; logo_url: string | null; document_footer: string | null; updated_by: string | null; updated_at: string }
+        Insert: Omit<Database['public']['Tables']['clinic_settings']['Row'], 'id' | 'updated_at'>
+        Update: Partial<Database['public']['Tables']['clinic_settings']['Insert']>
+      }
+    }
+    Views: Record<string, never>
+    Functions: Record<string, never>
+    Enums: Record<string, never>
   }
-
-  if (role === 'recepcionista') {
-    return [
-      { title: 'Principal', items: [...common, { to: '/pacientes', icon: <Users size={17} />, label: 'Pacientes' }, { to: '/agenda', icon: <CalendarDays size={17} />, label: 'Agenda' }] },
-      { title: 'Atención', items: [
-        { to: '/signos-vitales', icon: <Activity size={17} />, label: 'Signos Vitales' },
-        { to: '/vacunas', icon: <Syringe size={17} />, label: 'Vacunas' },
-        { to: '/certificados', icon: <Award size={17} />, label: 'Certificados' },
-      ]},
-    ]
-  }
-
-  if (role === 'medico') {
-    return [
-      { title: 'Principal', items: [...common, { to: '/agenda', icon: <CalendarDays size={17} />, label: 'Mis Citas' }, { to: '/pacientes', icon: <Users size={17} />, label: 'Pacientes' }] },
-      { title: 'Documentos', items: [
-        { to: '/historias', icon: <FileText size={17} />, label: 'Historia Clínica' },
-        { to: '/recetas', icon: <ClipboardList size={17} />, label: 'Recetas' },
-        { to: '/certificados', icon: <Award size={17} />, label: 'Certificados' },
-        { to: '/laboratorio', icon: <FlaskConical size={17} />, label: 'Pedidos Lab.' },
-        { to: '/imagenes', icon: <Image size={17} />, label: 'Pedidos Imagen' },
-        { to: '/interconsultas', icon: <ArrowLeftRight size={17} />, label: 'Interconsultas' },
-        { to: '/epicrisis', icon: <FileStack size={17} />, label: 'Epicrisis' },
-      ]},
-    ]
-  }
-
-  if (role === 'podologo') {
-    return [
-      { title: 'Principal', items: [...common, { to: '/agenda', icon: <CalendarDays size={17} />, label: 'Mis Citas' }, { to: '/pacientes', icon: <Users size={17} />, label: 'Mis Pacientes' }] },
-      { title: 'Podología', items: [
-        { to: '/historias', icon: <Heart size={17} />, label: 'Historia Podológica' },
-        { to: '/recetas', icon: <ClipboardList size={17} />, label: 'Recetas' },
-        { to: '/certificados', icon: <Award size={17} />, label: 'Certificados' },
-        { to: '/laboratorio', icon: <FlaskConical size={17} />, label: 'Lab. / Imagen' },
-        { to: '/evoluciones', icon: <TrendingUp size={17} />, label: 'Evoluciones' },
-      ]},
-    ]
-  }
-
-  return [{ title: 'Principal', items: common }]
-}
-
-interface SidebarProps {
-  profile: Profile
-  onLogout: () => void
-}
-
-export function Sidebar({ profile, onLogout }: SidebarProps) {
-  const sections = getNavSections(profile.role)
-
-  return (
-    <aside className="w-[240px] bg-[#0a2e40] flex flex-col flex-shrink-0 h-screen">
-      {/* Logo */}
-      <div className="px-4 py-4 border-b border-white/8 flex items-center gap-2.5">
-        <div className="w-8 h-8 bg-teal-600 rounded-lg flex items-center justify-center flex-shrink-0">
-          <Heart size={16} className="text-white" strokeWidth={2} />
-        </div>
-        <div>
-          <p className="text-white text-sm font-medium leading-tight">VM Medical</p>
-          <p className="text-white/40 text-[10px] uppercase tracking-wider">Centro Médico</p>
-        </div>
-      </div>
-
-      {/* Nav */}
-      <nav className="flex-1 overflow-y-auto py-3 space-y-0.5">
-        {sections.map(section => (
-          <div key={section.title}>
-            <p className="px-4 pt-3 pb-1 text-[10px] font-medium text-white/30 uppercase tracking-widest">
-              {section.title}
-            </p>
-            {section.items.map(item => (
-              <NavLink
-                key={item.to}
-                to={item.to}
-                className={({ isActive }) => cn(
-                  'flex items-center gap-2.5 px-4 py-2 mx-2 rounded-lg text-sm transition-all',
-                  isActive
-                    ? 'bg-teal-600/20 text-teal-300 font-medium'
-                    : 'text-white/55 hover:text-white/90 hover:bg-white/6'
-                )}
-              >
-                {item.icon}
-                <span className="flex-1">{item.label}</span>
-                <ChevronRight size={12} className="opacity-0 group-hover:opacity-100" />
-              </NavLink>
-            ))}
-          </div>
-        ))}
-      </nav>
-
-      {/* Usuario */}
-      <div className="px-4 py-3 border-t border-white/8 flex items-center gap-2.5">
-        <div className="w-8 h-8 rounded-full bg-teal-600 flex items-center justify-center text-xs font-semibold text-white flex-shrink-0">
-          {profile.full_name.split(' ').slice(0, 2).map(w => w[0]).join('')}
-        </div>
-        <div className="flex-1 min-w-0">
-          <p className="text-white text-xs font-medium truncate">{profile.full_name}</p>
-          <p className="text-white/40 text-[10px] capitalize">{profile.role}</p>
-        </div>
-        <button
-          onClick={onLogout}
-          title="Cerrar sesión"
-          className="text-white/30 hover:text-white/70 transition-colors p-1 rounded"
-        >
-          <LogOut size={15} />
-        </button>
-      </div>
-    </aside>
-  )
 }

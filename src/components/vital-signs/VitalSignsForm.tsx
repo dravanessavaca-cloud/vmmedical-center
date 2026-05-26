@@ -1,50 +1,66 @@
-import { forwardRef, type ButtonHTMLAttributes } from 'react'
-import { cn } from '@/utils'
-import { Loader2 } from 'lucide-react'
+import { useState, useEffect } from 'react'
+import { useForm } from 'react-hook-form'
+import { Button, Input, Textarea } from '@/components/ui'
+import { calculateBMI, bmiCategory } from '@/utils'
+import type { VitalSignsInsert } from '@/types'
 
-interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
-  variant?: 'primary' | 'secondary' | 'danger' | 'ghost' | 'outline'
-  size?: 'sm' | 'md' | 'lg'
-  loading?: boolean
-  icon?: React.ReactNode
-}
+interface VitalSignsFormProps { patientId: string; appointmentId?: string; userId: string; onSave: (data: VitalSignsInsert) => Promise<void>; onCancel?: () => void }
 
-export const Button = forwardRef<HTMLButtonElement, ButtonProps>(({
-  variant = 'primary',
-  size = 'md',
-  loading = false,
-  icon,
-  className,
-  children,
-  disabled,
-  ...props
-}, ref) => {
-  const base = 'inline-flex items-center justify-center gap-2 font-medium rounded-lg transition-all focus:outline-none focus:ring-2 focus:ring-offset-1 disabled:opacity-50 disabled:cursor-not-allowed'
+export function VitalSignsForm({ patientId, appointmentId, userId, onSave, onCancel }: VitalSignsFormProps) {
+  const { register, handleSubmit, watch, setValue } = useForm<VitalSignsInsert>()
+  const [saving, setSaving] = useState(false)
+  const weight = watch('weight_kg')
+  const height = watch('height_cm')
 
-  const variants = {
-    primary:   'bg-teal-600 text-white hover:bg-teal-400 focus:ring-teal-400',
-    secondary: 'bg-gray-100 text-gray-800 hover:bg-gray-200 focus:ring-gray-300',
-    danger:    'bg-red-600 text-white hover:bg-red-700 focus:ring-red-400',
-    ghost:     'text-gray-600 hover:bg-gray-100 focus:ring-gray-300',
-    outline:   'border border-gray-300 text-gray-700 hover:bg-gray-50 focus:ring-gray-300',
-  }
+  useEffect(() => {
+    if (weight && height) setValue('bmi' as keyof VitalSignsInsert, calculateBMI(Number(weight), Number(height)) as never)
+  }, [weight, height, setValue])
 
-  const sizes = {
-    sm: 'px-3 py-1.5 text-sm',
-    md: 'px-4 py-2 text-sm',
-    lg: 'px-5 py-2.5 text-base',
+  const bmi = watch('bmi' as keyof VitalSignsInsert) as number | undefined
+  const bmiInfo = bmi ? bmiCategory(bmi) : null
+
+  const onSubmit = async (data: VitalSignsInsert) => {
+    setSaving(true)
+    await onSave({ ...data, patient_id: patientId, appointment_id: appointmentId, recorded_by: userId })
+    setSaving(false)
   }
 
   return (
-    <button
-      ref={ref}
-      disabled={disabled || loading}
-      className={cn(base, variants[variant], sizes[size], className)}
-      {...props}
-    >
-      {loading ? <Loader2 size={16} className="animate-spin" /> : icon}
-      {children}
-    </button>
+    <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
+      <div>
+        <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">Antropometría</h4>
+        <div className="grid grid-cols-3 gap-3">
+          <Input label="Peso (kg)" type="number" step="0.1" placeholder="ej: 72.5" {...register('weight_kg', { valueAsNumber: true })} />
+          <Input label="Talla (cm)" type="number" placeholder="ej: 168" {...register('height_cm', { valueAsNumber: true })} />
+          <div>
+            <label className="block text-xs font-medium text-gray-600 uppercase tracking-wide mb-1.5">IMC</label>
+            <input readOnly value={bmi ? String(bmi) : ''} placeholder="Auto" className="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm bg-gray-50" />
+            {bmiInfo && <p className={`text-xs mt-1 ${bmiInfo.color}`}>{bmiInfo.label}</p>}
+          </div>
+        </div>
+      </div>
+      <div>
+        <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">Signos Vitales</h4>
+        <div className="grid grid-cols-2 gap-3">
+          <Input label="Temperatura (°C)" type="number" step="0.1" placeholder="ej: 36.5" {...register('temperature_c', { valueAsNumber: true })} />
+          <Input label="Frec. Cardíaca (bpm)" type="number" placeholder="ej: 78" {...register('heart_rate_bpm', { valueAsNumber: true })} />
+          <Input label="Frec. Respiratoria (rpm)" type="number" placeholder="ej: 16" {...register('respiratory_rate_rpm', { valueAsNumber: true })} />
+          <Input label="Saturación O₂ (%)" type="number" placeholder="ej: 98" {...register('oxygen_saturation_pct', { valueAsNumber: true })} />
+        </div>
+      </div>
+      <div>
+        <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">Presión Arterial</h4>
+        <div className="grid grid-cols-3 gap-3">
+          <Input label="Sistólica (mmHg)" type="number" placeholder="ej: 120" {...register('systolic_bp', { valueAsNumber: true })} />
+          <Input label="Diastólica (mmHg)" type="number" placeholder="ej: 80" {...register('diastolic_bp', { valueAsNumber: true })} />
+          <Input label="Glucosa (mg/dL)" type="number" placeholder="ej: 95" {...register('blood_glucose_mgdl', { valueAsNumber: true })} />
+        </div>
+      </div>
+      <Textarea label="Observaciones" placeholder="Observaciones adicionales..." {...register('observations')} />
+      <div className="flex justify-end gap-3 pt-2 border-t border-gray-100">
+        {onCancel && <Button variant="outline" type="button" onClick={onCancel}>Cancelar</Button>}
+        <Button type="submit" loading={saving}>Guardar Signos Vitales</Button>
+      </div>
+    </form>
   )
-})
-Button.displayName = 'Button'
+}

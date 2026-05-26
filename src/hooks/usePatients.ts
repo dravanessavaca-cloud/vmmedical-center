@@ -1,57 +1,52 @@
-import { cn } from '@/utils'
-import { APPOINTMENT_STATUS_COLORS, APPOINTMENT_STATUS_LABELS } from '@/utils'
+import { useState, useCallback } from 'react'
+import { supabase, logAuditEvent } from '@/lib/supabase'
+import type { Patient, PatientInsert, PatientUpdate } from '@/types'
 
-interface BadgeProps {
-  children: React.ReactNode
-  variant?: 'default' | 'success' | 'warning' | 'danger' | 'info' | 'gray'
-  className?: string
-}
+export function usePatients({ userId }: { userId: string }) {
+  const [patients, setPatients] = useState<Patient[]>([])
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
-export function Badge({ children, variant = 'default', className }: BadgeProps) {
-  const variants = {
-    default: 'bg-gray-100 text-gray-700',
-    success: 'bg-green-100 text-green-800',
-    warning: 'bg-yellow-100 text-yellow-800',
-    danger:  'bg-red-100 text-red-800',
-    info:    'bg-blue-100 text-blue-800',
-    gray:    'bg-gray-100 text-gray-500',
-  }
-  return (
-    <span className={cn('inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium', variants[variant], className)}>
-      {children}
-    </span>
-  )
-}
+  const fetchPatients = useCallback(async (search = '') => {
+    setLoading(true); setError(null)
+    let query = supabase.from('patients').select('*').is('deleted_at', null).order('created_at', { ascending: false }).limit(100)
+    if (search.trim()) query = query.or(`first_name.ilike.%${search}%,last_name.ilike.%${search}%,id_number.ilike.%${search}%,phone.ilike.%${search}%,medical_record_number.ilike.%${search}%`)
+    const { data, error: err } = await query
+    setLoading(false)
+    if (err) { setError('Error al cargar pacientes.'); return }
+    setPatients((data ?? []) as Patient[])
+  }, [])
 
-interface AppointmentStatusBadgeProps {
-  status: string
-}
+  const getPatient = useCallback(async (id: string): Promise<Patient | null> => {
+    const { data, error: err } = await supabase.from('patients').select('*').eq('id', id).single()
+    if (err || !data) return null
+    return data as Patient
+  }, [])
 
-export function AppointmentStatusBadge({ status }: AppointmentStatusBadgeProps) {
-  return (
-    <span className={cn('inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium', APPOINTMENT_STATUS_COLORS[status] ?? 'bg-gray-100 text-gray-600')}>
-      {APPOINTMENT_STATUS_LABELS[status] ?? status}
-    </span>
-  )
-}
+  const createPatient = useCallback(async (input: PatientInsert): Promise<Patient | null> => {
+    setLoading(true)
+    const { data, error: err } = await supabase.from('patients').insert({ ...input, created_by: userId }).select().single()
+    setLoading(false)
+    if (err || !data) { setError('Error al crear paciente: ' + (err?.message ?? '')); return null }
+    const patient = data as Patient
+    await logAuditEvent({ action: 'INSERT', tableName: 'patients', recordId: patient.id, newData: patient as unknown as Record<string, unknown> })
+    setPatients(prev => [patient, ...prev])
+    return patient
+  }, [userId])
 
-interface RoleBadgeProps {
-  role: string
-}
+  const updatePatient = useCallback(async (id: string, updates: PatientUpdate): Promise<boolean> => {
+    const { data, error: err } = await supabase.from('patients').update({ ...updates, updated_by: userId }).eq('id', id).select().single()
+    if (err || !data) { setError('Error al actualizar paciente.'); return false }
+    setPatients(prev => prev.map(p => p.id === id ? data as Patient : p))
+    return true
+  }, [userId])
 
-export function RoleBadge({ role }: RoleBadgeProps) {
-  const colors: Record<string, string> = {
-    admin:         'bg-blue-100 text-blue-800',
-    recepcionista: 'bg-teal-50 text-teal-700',
-    medico:        'bg-amber-100 text-amber-800',
-    podologo:      'bg-orange-100 text-orange-800',
-  }
-  const labels: Record<string, string> = {
-    admin: 'Admin', recepcionista: 'Recepcionista', medico: 'Médico', podologo: 'Podólogo',
-  }
-  return (
-    <span className={cn('inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium', colors[role] ?? 'bg-gray-100 text-gray-600')}>
-      {labels[role] ?? role}
-    </span>
-  )
+  const deletePatient = useCallback(async (id: string): Promise<boolean> => {
+    const { error: err } = await supabase.from('patients').update({ deleted_at: new Date().toISOString(), updated_by: userId }).eq('id', id)
+    if (err) { setError('Error al eliminar paciente.'); return false }
+    setPatients(prev => prev.filter(p => p.id !== id))
+    return true
+  }, [userId])
+
+  return { patients, loading, error, fetchPatients, getPatient, createPatient, updatePatient, deletePatient }
 }
