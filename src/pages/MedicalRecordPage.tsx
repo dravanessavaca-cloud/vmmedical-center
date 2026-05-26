@@ -192,14 +192,125 @@ function MedicalForm({ onSave, onCancel, saving, initial }: { onSave: (data: Par
   )
 }
 
+// ── Canvas de dibujo podología ────────────────────────────────
+function PodologyCanvas({ canvasId }: { canvasId: string }) {
+  const [color, setColor] = useState('#e53e3e')
+  const [brushSize, setBrushSize] = useState(3)
+  const [isEraser, setIsEraser] = useState(false)
+
+  useEffect(() => {
+    const canvas = document.getElementById(canvasId) as HTMLCanvasElement
+    if (!canvas) return
+    const ctx = canvas.getContext('2d')!
+    let drawing = false, lx = 0, ly = 0
+
+    const resize = () => {
+      const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height)
+      const r = canvas.getBoundingClientRect()
+      canvas.width = r.width * window.devicePixelRatio
+      canvas.height = r.height * window.devicePixelRatio
+      ctx.scale(window.devicePixelRatio, window.devicePixelRatio)
+      ctx.putImageData(imageData, 0, 0)
+    }
+    const r = canvas.getBoundingClientRect()
+    canvas.width = r.width * window.devicePixelRatio
+    canvas.height = r.height * window.devicePixelRatio
+    ctx.scale(window.devicePixelRatio, window.devicePixelRatio)
+
+    const getPos = (e: MouseEvent | TouchEvent) => {
+      const rect = canvas.getBoundingClientRect()
+      const src = 'touches' in e ? e.touches[0] : e as MouseEvent
+      return {
+        x: (src.clientX - rect.left),
+        y: (src.clientY - rect.top)
+      }
+    }
+
+    const start = (e: any) => { e.preventDefault(); drawing = true; const p = getPos(e); lx = p.x; ly = p.y }
+    const move = (e: any) => {
+      if (!drawing) return
+      e.preventDefault()
+      const p = getPos(e)
+      ctx.beginPath()
+      ctx.moveTo(lx, ly)
+      ctx.lineTo(p.x, p.y)
+      ctx.strokeStyle = isEraser ? '#ffffff' : color
+      ctx.lineWidth = isEraser ? brushSize * 4 : brushSize
+      ctx.lineCap = 'round'
+      ctx.lineJoin = 'round'
+      ctx.globalCompositeOperation = isEraser ? 'destination-out' : 'source-over'
+      ctx.stroke()
+      lx = p.x; ly = p.y
+    }
+    const stop = () => { drawing = false }
+
+    canvas.addEventListener('mousedown', start)
+    canvas.addEventListener('mousemove', move)
+    canvas.addEventListener('mouseup', stop)
+    canvas.addEventListener('mouseleave', stop)
+    canvas.addEventListener('touchstart', start, { passive: false })
+    canvas.addEventListener('touchmove', move, { passive: false })
+    canvas.addEventListener('touchend', stop)
+    window.addEventListener('resize', resize)
+
+    return () => {
+      canvas.removeEventListener('mousedown', start)
+      canvas.removeEventListener('mousemove', move)
+      canvas.removeEventListener('mouseup', stop)
+      canvas.removeEventListener('mouseleave', stop)
+      canvas.removeEventListener('touchstart', start)
+      canvas.removeEventListener('touchmove', move)
+      canvas.removeEventListener('touchend', stop)
+      window.removeEventListener('resize', resize)
+    }
+  }, [color, brushSize, isEraser, canvasId])
+
+  const clearCanvas = () => {
+    const canvas = document.getElementById(canvasId) as HTMLCanvasElement
+    if (!canvas) return
+    const ctx = canvas.getContext('2d')!
+    ctx.clearRect(0, 0, canvas.width, canvas.height)
+  }
+
+  return (
+    <div>
+      <div className="grid grid-cols-4 gap-2 mb-2 text-center">
+        {['Planta D', 'Planta I', 'Dorso D', 'Dorso I'].map(t => (
+          <p key={t} className="text-xs text-gray-400 font-medium">{t}</p>
+        ))}
+      </div>
+      <div className="relative border border-gray-200 rounded-lg overflow-hidden bg-white" style={{ height: '200px' }}>
+        <canvas id={canvasId} style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', cursor: isEraser ? 'cell' : 'crosshair', touchAction: 'none' }} />
+        <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%,-50%)', pointerEvents: 'none' }}>
+          <p className="text-xs text-gray-300 text-center whitespace-nowrap">Dibuje aquí la ubicación de la lesión</p>
+        </div>
+      </div>
+      <div className="flex items-center gap-3 mt-2">
+        <input type="color" value={color} onChange={e => setColor(e.target.value)}
+          className="w-7 h-7 rounded cursor-pointer border border-gray-200" title="Color" />
+        <input type="range" min="1" max="10" value={brushSize} onChange={e => setBrushSize(parseInt(e.target.value))}
+          className="w-20" title="Grosor" />
+        <button type="button" onClick={() => setIsEraser(!isEraser)}
+          className={`text-xs px-2 py-1 border rounded-lg transition-colors ${isEraser ? 'bg-teal-50 border-teal-300 text-teal-700' : 'border-gray-200 text-gray-500 hover:bg-gray-50'}`}>
+          Borrador
+        </button>
+        <button type="button" onClick={clearCanvas}
+          className="text-xs px-2 py-1 border border-gray-200 rounded-lg text-gray-500 hover:bg-gray-50">
+          Limpiar
+        </button>
+      </div>
+    </div>
+  )
+}
+
 // ── Formulario Podología ──────────────────────────────────────
 function PodologyForm({ onSave, onCancel, saving, initial }: { onSave: (data: Partial<MedicalRecordInsert>) => void; onCancel: () => void; saving: boolean; initial?: MedicalRecord }) {
   const { register, handleSubmit } = useForm<MedicalRecordInsert & { podology_conditions: string[]; podology_mobility: string[] }>({ defaultValues: initial ?? {} })
   const [imageUrl, setImageUrl] = useState<string | null>((initial as any)?.podology_image_url ?? null)
   const [uploading, setUploading] = useState(false)
-  const CONDITIONS = ['Bromhidrosis','Xerosis','Dermatitis','Paroniquia']
-  const MOBILITY = ['Silla de Ruedas','Andador','Muletas','Bastón']
-  const DEVICES = ['Plantillas D','Plantillas I','Separador Int D','Separador Int I','Taloneras D','Taloneras I']
+  const CONDITIONS = ['Bromhidrosis', 'Xerosis', 'Dermatitis', 'Paroniquia']
+  const MOBILITY = ['Silla de Ruedas', 'Andador', 'Muletas', 'Bastón']
+  const DEVICES = ['Plantillas D', 'Plantillas I', 'Separador Int D', 'Separador Int I', 'Taloneras D', 'Taloneras I']
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
@@ -212,10 +323,6 @@ function PodologyForm({ onSave, onCancel, saving, initial }: { onSave: (data: Pa
       setImageUrl(urlData.publicUrl)
     }
     setUploading(false)
-  }
-
-  const handleRemoveImage = async () => {
-    setImageUrl(null)
   }
 
   const handleSave = (data: any) => {
@@ -275,38 +382,10 @@ function PodologyForm({ onSave, onCancel, saving, initial }: { onSave: (data: Pa
             </div>
           </div>
 
-          {/* Diagrama de pies */}
+          {/* Diagrama de pies — canvas en blanco */}
           <div className="border border-gray-200 rounded-xl p-4">
             <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">Diagrama de pies</p>
-            <div className="w-full overflow-x-auto">
-              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 600" width="100%" height="auto">
-                <style>{`.contorno { fill: none; stroke: currentColor; stroke-width: 2.5; stroke-linecap: round; stroke-linejoin: round; }`}</style>
-                <text x="190" y="115" textAnchor="middle" fontSize="18" fill="currentColor" opacity="0.4">Planta D</text>
-                <text x="405" y="115" textAnchor="middle" fontSize="18" fill="currentColor" opacity="0.4">Planta I</text>
-                <text x="655" y="95" textAnchor="middle" fontSize="18" fill="currentColor" opacity="0.4">Dorso D</text>
-                <text x="800" y="95" textAnchor="middle" fontSize="18" fill="currentColor" opacity="0.4">Dorso I</text>
-                <g id="vista-plantas">
-                  <path className="contorno" d="M 190,470 C 155,470 135,430 135,360 C 135,280 110,230 105,185 C 102,160 110,145 122,145 C 133,145 135,160 136,172 C 138,155 144,135 155,135 C 165,135 167,152 168,168 C 170,150 178,130 188,130 C 198,130 200,150 202,168 C 205,150 213,135 224,135 C 235,135 237,155 238,175 C 242,158 258,128 272,128 C 288,128 295,155 292,190 C 288,235 270,260 272,300 C 275,345 240,410 240,445 C 240,470 220,470 190,470 Z" />
-                  <path className="contorno" d="M 405,470 C 375,470 355,470 355,445 C 355,410 320,345 323,300 C 325,260 307,235 303,190 C 300,155 307,128 323,128 C 337,128 353,158 357,175 C 358,155 360,135 371,135 C 382,135 390,150 393,168 C 395,150 397,130 407,130 C 417,130 425,150 427,168 C 428,152 430,135 440,135 C 451,135 457,155 459,172 C 460,160 462,145 473,145 C 485,145 493,160 490,185 C 485,230 460,280 460,360 C 460,430 440,470 405,470 Z" />
-                </g>
-                <g id="vista-empeines">
-                  <path className="contorno" d="M 610,470 L 613,380 C 613,340 605,300 605,240 C 605,185 588,180 585,155 C 582,135 592,125 602,125 C 610,125 613,140 614,152 C 617,135 624,120 632,120 C 640,120 642,135 644,148 C 647,130 655,115 665,115 C 675,115 677,130 679,145 C 682,125 690,110 702,110 C 714,110 717,125 719,145 C 722,128 732,120 742,120 C 755,120 762,140 760,170 C 755,245 725,320 725,370" />
-                  <path className="contorno" d="M 714,410 L 700,470" />
-                  <path className="contorno" d="M 590,152 C 590,143 598,143 598,152 Z" />
-                  <path className="contorno" d="M 619,142 C 619,134 627,134 627,142 Z" />
-                  <path className="contorno" d="M 648,135 C 648,127 658,127 658,135 Z" />
-                  <path className="contorno" d="M 683,132 C 683,123 695,123 695,132 Z" />
-                  <path className="contorno" d="M 723,145 C 723,132 738,132 738,145 Z" />
-                  <path className="contorno" d="M 845,470 L 842,380 C 842,340 850,300 850,240 C 850,185 867,180 870,155 C 873,135 863,125 853,125 C 845,125 842,140 841,152 C 838,135 831,120 823,120 C 815,120 813,135 811,148 C 808,130 800,115 790,115 C 780,115 778,130 776,145 C 773,125 765,110 753,110 C 741,110 738,125 736,145 C 733,128 723,120 713,120 C 700,120 693,140 695,170 C 700,245 730,320 730,370" />
-                  <path className="contorno" d="M 741,410 L 755,470" />
-                  <path className="contorno" d="M 865,152 C 865,143 857,143 857,152 Z" />
-                  <path className="contorno" d="M 836,142 C 836,134 828,134 828,142 Z" />
-                  <path className="contorno" d="M 807,135 C 807,127 797,127 797,135 Z" />
-                  <path className="contorno" d="M 772,132 C 772,123 760,123 760,132 Z" />
-                  <path className="contorno" d="M 732,145 C 732,132 717,132 717,145 Z" />
-                </g>
-              </svg>
-            </div>
+            <PodologyCanvas canvasId="podCanvasForm" />
           </div>
 
           {/* Imagen de lesión */}
@@ -315,7 +394,7 @@ function PodologyForm({ onSave, onCancel, saving, initial }: { onSave: (data: Pa
             {imageUrl ? (
               <div className="relative inline-block">
                 <img src={imageUrl} alt="Lesión podológica" className="max-h-48 rounded-lg border border-gray-200 object-cover" />
-                <button type="button" onClick={handleRemoveImage}
+                <button type="button" onClick={() => setImageUrl(null)}
                   className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600">
                   <X size={12} />
                 </button>
@@ -435,7 +514,7 @@ function PrintRecord({ record, patient, clinicSettings, isPodology, onClose }: {
           <p className="font-bold mb-1">EX FISICO:</p>
           <table className="w-full border border-gray-400 text-xs">
             <tbody>
-              <tr>{['FC:','FR:','SATO2:','T:','PESO:','TALLA:', isPodology ? 'PR.AR.' : 'TA:'].map(h => (<td key={h} className="border border-gray-400 px-2 py-1 font-bold">{h}</td>))}</tr>
+              <tr>{['FC:', 'FR:', 'SATO2:', 'T:', 'PESO:', 'TALLA:', isPodology ? 'PR.AR.' : 'TA:'].map(h => (<td key={h} className="border border-gray-400 px-2 py-1 font-bold">{h}</td>))}</tr>
               <tr>{[...Array(7)].map((_, i) => <td key={i} className="border border-gray-400 px-2 py-3"></td>)}</tr>
             </tbody>
           </table>
@@ -466,54 +545,36 @@ function PrintRecord({ record, patient, clinicSettings, isPodology, onClose }: {
           <div className="mt-4 border-t border-gray-300 pt-3">
             <p className="font-bold mb-2">UBICACIÓN DE PATOLOGÍAS:</p>
             <div className="grid grid-cols-4 gap-2 text-xs">
-              {['BROMHIDROSIS','XEROSIS','SILLA DE RUEDAS','ANDADOR','DERMATITIS','PARONIQUIA','MULETAS','BASTÓN'].map(c => (
+              {['BROMHIDROSIS', 'XEROSIS', 'SILLA DE RUEDAS', 'ANDADOR', 'DERMATITIS', 'PARONIQUIA', 'MULETAS', 'BASTÓN'].map(c => (
                 <div key={c} className="flex items-center gap-1 border border-gray-300 px-2 py-1">
                   <div className="w-3 h-3 border border-gray-400 flex-shrink-0"></div>
                   <span>{c}</span>
                 </div>
               ))}
             </div>
-            <div className="mt-3">
-              <p className="font-bold mb-2">Diagrama de pies:</p>
-              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 600" width="100%" height="auto">
-                <style>{`.cp { fill: none; stroke: #333; stroke-width: 2.5; stroke-linecap: round; stroke-linejoin: round; }`}</style>
-                <text x="190" y="115" textAnchor="middle" fontSize="18" fill="#666">Planta D</text>
-                <text x="405" y="115" textAnchor="middle" fontSize="18" fill="#666">Planta I</text>
-                <text x="655" y="95" textAnchor="middle" fontSize="18" fill="#666">Dorso D</text>
-                <text x="800" y="95" textAnchor="middle" fontSize="18" fill="#666">Dorso I</text>
-                <path className="cp" d="M 190,470 C 155,470 135,430 135,360 C 135,280 110,230 105,185 C 102,160 110,145 122,145 C 133,145 135,160 136,172 C 138,155 144,135 155,135 C 165,135 167,152 168,168 C 170,150 178,130 188,130 C 198,130 200,150 202,168 C 205,150 213,135 224,135 C 235,135 237,155 238,175 C 242,158 258,128 272,128 C 288,128 295,155 292,190 C 288,235 270,260 272,300 C 275,345 240,410 240,445 C 240,470 220,470 190,470 Z" />
-                <path className="cp" d="M 405,470 C 375,470 355,470 355,445 C 355,410 320,345 323,300 C 325,260 307,235 303,190 C 300,155 307,128 323,128 C 337,128 353,158 357,175 C 358,155 360,135 371,135 C 382,135 390,150 393,168 C 395,150 397,130 407,130 C 417,130 425,150 427,168 C 428,152 430,135 440,135 C 451,135 457,155 459,172 C 460,160 462,145 473,145 C 485,145 493,160 490,185 C 485,230 460,280 460,360 C 460,430 440,470 405,470 Z" />
-                <path className="cp" d="M 610,470 L 613,380 C 613,340 605,300 605,240 C 605,185 588,180 585,155 C 582,135 592,125 602,125 C 610,125 613,140 614,152 C 617,135 624,120 632,120 C 640,120 642,135 644,148 C 647,130 655,115 665,115 C 675,115 677,130 679,145 C 682,125 690,110 702,110 C 714,110 717,125 719,145 C 722,128 732,120 742,120 C 755,120 762,140 760,170 C 755,245 725,320 725,370" />
-                <path className="cp" d="M 714,410 L 700,470" />
-                <path className="cp" d="M 590,152 C 590,143 598,143 598,152 Z" />
-                <path className="cp" d="M 619,142 C 619,134 627,134 627,142 Z" />
-                <path className="cp" d="M 648,135 C 648,127 658,127 658,135 Z" />
-                <path className="cp" d="M 683,132 C 683,123 695,123 695,132 Z" />
-                <path className="cp" d="M 723,145 C 723,132 738,132 738,145 Z" />
-                <path className="cp" d="M 845,470 L 842,380 C 842,340 850,300 850,240 C 850,185 867,180 870,155 C 873,135 863,125 853,125 C 845,125 842,140 841,152 C 838,135 831,120 823,120 C 815,120 813,135 811,148 C 808,130 800,115 790,115 C 780,115 778,130 776,145 C 773,125 765,110 753,110 C 741,110 738,125 736,145 C 733,128 723,120 713,120 C 700,120 693,140 695,170 C 700,245 730,320 730,370" />
-                <path className="cp" d="M 741,410 L 755,470" />
-                <path className="cp" d="M 865,152 C 865,143 857,143 857,152 Z" />
-                <path className="cp" d="M 836,142 C 836,134 828,134 828,142 Z" />
-                <path className="cp" d="M 807,135 C 807,127 797,127 797,135 Z" />
-                <path className="cp" d="M 772,132 C 772,123 760,123 760,132 Z" />
-                <path className="cp" d="M 732,145 C 732,132 717,132 717,145 Z" />
-              </svg>
-              {(record as any).podology_image_url && (
-                <div className="mt-3">
-                  <p className="font-bold mb-1">Imagen de lesión:</p>
-                  <img src={(record as any).podology_image_url} alt="Lesión" className="max-h-48 rounded border border-gray-300" />
-                </div>
-              )}
-              <div className="mt-2 text-xs border border-gray-300 inline-block">
-                <table>
-                  <thead><tr><th className="border border-gray-300 px-2 py-1">USO DE</th><th className="border border-gray-300 px-2 py-1">D</th><th className="border border-gray-300 px-2 py-1">I</th></tr></thead>
-                  <tbody>
-                    {['PLANTILLAS','SEPARADOR INT','TALONERAS'].map(r => (
-                      <tr key={r}><td className="border border-gray-300 px-2 py-1">{r}</td><td className="border border-gray-300 px-2 py-1 w-6"></td><td className="border border-gray-300 px-2 py-1 w-6"></td></tr>
-                    ))}
-                  </tbody>
-                </table>
+            {(record as any).podology_image_url && (
+              <div className="mt-3">
+                <p className="font-bold mb-1">Imagen de lesión:</p>
+                <img src={(record as any).podology_image_url} alt="Lesión" className="max-h-48 rounded border border-gray-300" />
               </div>
+            )}
+            <div className="mt-3 border border-gray-300 p-2 rounded">
+              <p className="font-bold text-xs mb-1">Diagrama de pies — esquema:</p>
+              <div className="grid grid-cols-4 gap-2 text-center text-xs text-gray-400">
+                {['Planta D', 'Planta I', 'Dorso D', 'Dorso I'].map(t => (
+                  <div key={t} className="border border-gray-200 rounded h-16 flex items-end justify-center pb-1">{t}</div>
+                ))}
+              </div>
+            </div>
+            <div className="mt-2 text-xs border border-gray-300 inline-block">
+              <table>
+                <thead><tr><th className="border border-gray-300 px-2 py-1">USO DE</th><th className="border border-gray-300 px-2 py-1">D</th><th className="border border-gray-300 px-2 py-1">I</th></tr></thead>
+                <tbody>
+                  {['PLANTILLAS', 'SEPARADOR INT', 'TALONERAS'].map(r => (
+                    <tr key={r}><td className="border border-gray-300 px-2 py-1">{r}</td><td className="border border-gray-300 px-2 py-1 w-6"></td><td className="border border-gray-300 px-2 py-1 w-6"></td></tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
           </div>
         )}
