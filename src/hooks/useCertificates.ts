@@ -35,7 +35,7 @@ export function useCertificates(userId: string) {
     setLoading(true)
     const { data, error: err } = await supabase
       .from('certificates')
-      .select(`*, patient:patients(first_name,last_name,id_number,date_of_birth), physician:profiles(full_name,specialty,license_number)`)
+      .select('*, patient:patients(first_name,last_name,id_number,date_of_birth)')
       .eq('patient_id', patientId)
       .is('deleted_at', null)
       .order('created_at', { ascending: false })
@@ -48,7 +48,7 @@ export function useCertificates(userId: string) {
     setLoading(true)
     let query = supabase
       .from('certificates')
-      .select(`*, patient:patients(first_name,last_name,id_number,date_of_birth), physician:profiles(full_name,specialty,license_number)`)
+      .select('*, patient:patients(first_name,last_name,id_number,date_of_birth)')
       .is('deleted_at', null)
       .order('created_at', { ascending: false })
     if (physicianId) query = query.eq('physician_id', physicianId)
@@ -63,7 +63,7 @@ export function useCertificates(userId: string) {
     const { data, error: err } = await supabase
       .from('certificates')
       .insert({ ...input, physician_id: userId, created_by: userId, is_signed: false })
-      .select(`*, patient:patients(first_name,last_name,id_number,date_of_birth), physician:profiles(full_name,specialty,license_number)`)
+      .select('*, patient:patients(first_name,last_name,id_number,date_of_birth)')
       .single()
     setLoading(false)
     if (err || !data) { setError('Error al crear certificado.'); return null }
