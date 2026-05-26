@@ -43,7 +43,7 @@ export function usePrescriptions(userId: string) {
     setLoading(true)
     const { data, error: err } = await supabase
       .from('prescriptions')
-      .select(`*, items:prescription_items(*), patient:patients(first_name,last_name,id_number,date_of_birth), physician:profiles(full_name,specialty,license_number)`)
+      .select('*, items:prescription_items(*)')
       .eq('patient_id', patientId)
       .is('deleted_at', null)
       .order('created_at', { ascending: false })
@@ -56,7 +56,7 @@ export function usePrescriptions(userId: string) {
     setLoading(true)
     let query = supabase
       .from('prescriptions')
-      .select(`*, items:prescription_items(*), patient:patients(first_name,last_name,id_number,date_of_birth), physician:profiles(full_name,specialty,license_number)`)
+      .select('*, items:prescription_items(*)')
       .is('deleted_at', null)
       .order('created_at', { ascending: false })
     if (physicianId) query = query.eq('physician_id', physicianId)
@@ -77,11 +77,9 @@ export function usePrescriptions(userId: string) {
       .select()
       .single()
     if (err || !rx) { setError('Error al crear receta.'); setLoading(false); return null }
-
     const itemsToInsert = items.map((item, i) => ({ ...item, prescription_id: rx.id, sort_order: i }))
     await supabase.from('prescription_items').insert(itemsToInsert)
-
-    await logAuditEvent({ action: 'INSERT', tableName: 'prescriptions', recordId: rx.id, newData: input as Record<string, unknown> })
+    await logAuditEvent({ action: 'INSERT', tableName: 'prescriptions', recordId: rx.id, newData: input as unknown as Record<string, unknown> })
     setLoading(false)
     return rx as unknown as Prescription
   }, [userId])
