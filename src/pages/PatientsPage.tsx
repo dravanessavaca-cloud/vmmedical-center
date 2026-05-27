@@ -21,7 +21,7 @@ export function PatientsPage({ profile }: PatientsPageProps) {
   const [search, setSearch] = useState(params.get('search') ?? '')
   const [showModal, setShowModal] = useState(false)
   const [saving, setSaving] = useState(false)
-  const canCreate = profile.role !== 'medico' && profile.role !== 'podologo'
+  const canCreate = profile.role !== 'medico'
   const canDelete = profile.role === 'admin'
   const { register, handleSubmit, reset, formState: { errors } } = useForm<PatientInsert>()
 
