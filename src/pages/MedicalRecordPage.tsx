@@ -309,8 +309,26 @@ function PodologyForm({ onSave, onCancel, saving, initial }: { onSave: (data: Pa
     setUploading(false)
   }
 
-  const handleSave = (data: any) => {
-    onSave({ ...data, podology_image_url: imageUrl })
+  const handleSave = async (data: any) => {
+    let canvasUrl = (initial as any)?.podology_canvas_url ?? null
+
+    // Capturar canvas y subir a Storage
+    const canvas = document.getElementById('podCanvasForm') as HTMLCanvasElement
+    if (canvas) {
+      const blob = await new Promise<Blob | null>(resolve => canvas.toBlob(resolve, 'image/png'))
+      if (blob && blob.size > 1000) {
+        const fileName = `canvas-${Date.now()}.png`
+        const { data: uploadData, error } = await supabase.storage
+          .from('podology-images')
+          .upload(fileName, blob, { contentType: 'image/png' })
+        if (!error && uploadData) {
+          const { data: urlData } = supabase.storage.from('podology-images').getPublicUrl(uploadData.path)
+          canvasUrl = urlData.publicUrl
+        }
+      }
+    }
+
+    onSave({ ...data, podology_image_url: imageUrl, podology_canvas_url: canvasUrl })
   }
 
   return (
@@ -428,6 +446,12 @@ function RecordCard({ record, onEdit, canEdit, onPrint }: { record: MedicalRecor
           {record.therapeutic_plan && <Field label="TTO" value={record.therapeutic_plan} />}
           {record.observations && <Field label="Observaciones" value={record.observations} />}
           {record.follow_up_date && <Field label="Control" value={formatDate(record.follow_up_date)} />}
+          {(record as any).podology_canvas_url && (
+            <div>
+              <p className="text-xs font-bold text-gray-500 uppercase mb-1">Diagrama de lesión</p>
+              <img src={(record as any).podology_canvas_url} alt="Diagrama" className="max-h-40 rounded-lg border border-gray-200" />
+            </div>
+          )}
           {(record as any).podology_image_url && (
             <div>
               <p className="text-xs font-bold text-gray-500 uppercase mb-1">Imagen de lesión</p>
@@ -459,22 +483,11 @@ function PrintRecord({ record, patient, clinicSettings, isPodology, onClose }: {
   clinicSettings: { name: string; address: string; phone: string }
   isPodology: boolean; onClose: () => void
 }) {
-  const handlePrint = () => {
-    // Capturar canvas como imagen antes de imprimir
-    const canvas = document.getElementById('podCanvasForm') as HTMLCanvasElement
-    if (canvas) {
-      const imgData = canvas.toDataURL('image/png')
-      const printImg = document.getElementById('podCanvasPrint') as HTMLImageElement
-      if (printImg) printImg.src = imgData
-    }
-    window.print()
-  }
-
   return (
     <div className="fixed inset-0 z-50 bg-white overflow-auto">
       <div className="no-print flex items-center gap-3 px-6 py-3 bg-gray-100 border-b">
         <button onClick={onClose} className="px-4 py-2 rounded-lg border border-gray-300 text-sm hover:bg-gray-50">← Volver</button>
-        <button onClick={handlePrint} className="px-4 py-2 rounded-lg bg-teal-600 text-white text-sm hover:bg-teal-700">🖨️ Imprimir</button>
+        <button onClick={() => window.print()} className="px-4 py-2 rounded-lg bg-teal-600 text-white text-sm hover:bg-teal-700">🖨️ Imprimir</button>
       </div>
       <div className="print-page max-w-[210mm] mx-auto p-8 my-4 border border-gray-200 text-xs">
         <div className="flex items-center justify-center gap-4 mb-4 pb-3 border-b-2 border-gray-300">
@@ -544,14 +557,16 @@ function PrintRecord({ record, patient, clinicSettings, isPodology, onClose }: {
                 </div>
               ))}
             </div>
-            <div className="mt-3">
-              <p className="font-bold mb-1">Diagrama de lesión:</p>
-              <img id="podCanvasPrint" alt="Diagrama lesión" style={{ width: '100%', maxHeight: '200px', objectFit: 'contain', border: '1px solid #e5e7eb', borderRadius: '4px' }} />
-            </div>
+            {(record as any).podology_canvas_url && (
+              <div className="mt-3">
+                <p className="font-bold mb-1">Diagrama de lesión:</p>
+                <img src={(record as any).podology_canvas_url} alt="Diagrama lesión" style={{ width: '100%', maxHeight: '200px', objectFit: 'contain', border: '1px solid #e5e7eb', borderRadius: '4px' }} />
+              </div>
+            )}
             {(record as any).podology_image_url && (
               <div className="mt-3">
                 <p className="font-bold mb-1">Imagen de lesión:</p>
-                <img src={(record as any).podology_image_url} alt="Lesión" className="max-h-48 rounded border border-gray-300" />
+                <img src={(record as any).podology_image_url} alt="Lesión" style={{ maxHeight: '200px', borderRadius: '4px', border: '1px solid #e5e7eb' }} />
               </div>
             )}
             <div className="mt-2 text-xs border border-gray-300 inline-block">
